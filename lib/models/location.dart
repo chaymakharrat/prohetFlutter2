@@ -12,15 +12,14 @@ class LocationPoint {
   @override
   String toString() => '($latitude,$longitude) $label';
 }
+class FilterOptions {
+  final double? maxDistanceKm;
+  final DateTime? earliestDeparture;
+  final double? maxPrice;
 
-// class FilterOptions {
-//   final double? maxDistanceKm;
-//   final DateTime? earliestDeparture;
-//   final double? maxPrice;
-
-//   const FilterOptions({
-//     this.maxDistanceKm,
-//     this.earliestDeparture,
-//     this.maxPrice,
-//   });
-// }
+  const FilterOptions({
+    this.maxDistanceKm,
+    this.earliestDeparture,
+    this.maxPrice,
+  });
+}

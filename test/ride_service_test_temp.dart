@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:projet_flutter/services/ride_service.dart';
+import 'package:projet_flutter/controller/ride_service.dart';
 import 'package:projet_flutter/models/app_ride_models.dart';
 
 void main() {

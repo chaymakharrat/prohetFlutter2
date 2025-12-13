@@ -1,7 +1,17 @@
+// ============================================================
+// IMPORTS
+// ============================================================
+// Widgets Material Flutter
 import 'package:flutter/material.dart';
+// Firebase Authentication (création de compte)
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// Cloud Firestore (stockage des infos utilisateur)
+import 'package:projet_flutter/models/user_profile.dart';
+import 'package:projet_flutter/controller/User_controller.dart';
 
+// ============================================================
+// SIGN UP PAGE (INSCRIPTION)
+// ============================================================
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
@@ -9,12 +19,19 @@ class SignUpPage extends StatefulWidget {
   State<SignUpPage> createState() => _SignUpPageState();
 }
 
+// ============================================================
+// STATE DE LA PAGE
+// ============================================================
 class _SignUpPageState extends State<SignUpPage> {
+  // ----------------------------- CONTROLLERS -----------------------------
+  // Récupèrent les valeurs saisies dans les champs
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  // ----------------------------- CLEANUP -----------------------------
+  // Libération de la mémoire des controllers
   @override
   void dispose() {
     _nameController.dispose();
@@ -24,6 +41,9 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
+  // ============================================================
+  // FONCTION D'INSCRIPTION FIREBASE
+  // ============================================================
   Future<void> signUp(
     String name,
     String email,
@@ -31,27 +51,38 @@ class _SignUpPageState extends State<SignUpPage> {
     String password,
   ) async {
     try {
-      // Créer l'utilisateur dans Firebase Auth
+      // 1. Création de l'utilisateur dans Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      // Récupérer l'ID utilisateur
+      // 2. Récupération de l'UID (identifiant unique Firebase)
       String uid = userCredential.user!.uid;
+      final userService = UserService();
 
-      // Sauvegarder les infos supplémentaires dans Firestore
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      // Créer le profil utilisateur
+      final profile = UserProfile(
+        id: uid,
+        name: name,
+        email: email,
+        phone: phone,
+      );
 
-      // Rediriger vers la page login ou home
+      // Sauvegarder le profil via le service
+      try {
+        await userService.createUserProfile(profile);
+        print("Utilisateur ajouté à Firestore !");
+      } catch (e) {
+        print("Erreur Firestore : $e");
+      }
+
+      // 4. Redirection après succès
       if (mounted) {
         Navigator.pushNamed(context, '/login');
       }
-    } on FirebaseAuthException catch (e) {
-      String message = '';
+    }
+    // ----------------------------- GESTION DES ERREURS -----------------------------
+    on FirebaseAuthException catch (e) {
+      String message;
       if (e.code == 'email-already-in-use') {
         message = 'Cet email est déjà utilisé.';
       } else if (e.code == 'weak-password') {
@@ -61,17 +92,20 @@ class _SignUpPageState extends State<SignUpPage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }
 
+  // ============================================================
+  // UI PRINCIPALE
+  // ============================================================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE3F2FD), // Fond principal bleu clair
+      backgroundColor: const Color(0xFFE3F2FD),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -96,6 +130,7 @@ class _SignUpPageState extends State<SignUpPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // ----------------------------- TITRES -----------------------------
                   const Text(
                     'Créer un compte',
                     style: TextStyle(
@@ -112,6 +147,8 @@ class _SignUpPageState extends State<SignUpPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
+
+                  // ----------------------------- FORMULAIRE -----------------------------
                   _buildTextField(_nameController, 'Nom complet', Icons.person),
                   const SizedBox(height: 16),
                   _buildTextField(
@@ -135,44 +172,25 @@ class _SignUpPageState extends State<SignUpPage> {
                     obscureText: true,
                   ),
                   const SizedBox(height: 24),
-                  // SizedBox(
-                  //   height: 50,
-                  //   child: ElevatedButton(
-                  //     onPressed: () {
-                  //       Navigator.pushNamed(context, '/login');
-                  //     },
-                  //     style: ElevatedButton.styleFrom(
-                  //       backgroundColor: const Color(0xFF1976D2),
-                  //       shape: RoundedRectangleBorder(
-                  //         borderRadius: BorderRadius.circular(12),
-                  //       ),
-                  //     ),
-                  //     child: const Text(
-                  //       'S’inscrire',
-                  //       style: TextStyle(
-                  //         fontSize: 16,
-                  //         fontWeight: FontWeight.bold,
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
+
+                  // ----------------------------- BOUTON INSCRIPTION -----------------------------
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Vérifier que les champs ne sont pas vides
+                        // Vérification simple des champs obligatoires
                         if (_nameController.text.isEmpty ||
                             _emailController.text.isEmpty ||
                             _passwordController.text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content:
-                                    Text('Veuillez remplir tous les champs')),
+                              content: Text('Veuillez remplir tous les champs'),
+                            ),
                           );
                           return;
                         }
 
-                        // Appeler la fonction d'inscription Firebase
+                        // Appel de la fonction d'inscription
                         signUp(
                           _nameController.text.trim(),
                           _emailController.text.trim(),
@@ -197,6 +215,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
 
                   const SizedBox(height: 16),
+
+                  // ----------------------------- LIEN LOGIN -----------------------------
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -215,7 +235,7 @@ class _SignUpPageState extends State<SignUpPage> {
                               color: Color(0xFF4CAF50),
                               fontWeight: FontWeight.bold,
                             ),
-                            overflow: TextOverflow.ellipsis, // évite l’overflow
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
@@ -230,6 +250,9 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  // ============================================================
+  // WIDGET CHAMP DE TEXTE RÉUTILISABLE
+  // ============================================================
   Widget _buildTextField(
     TextEditingController controller,
     String label,

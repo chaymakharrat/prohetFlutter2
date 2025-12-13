@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:projet_flutter/models/user_profile.dart';
+import 'package:projet_flutter/controller/User_controller.dart';
+import 'package:projet_flutter/state/app_state.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -26,50 +29,72 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _signIn() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnack("Email et mot de passe obligatoires");
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
-      UserCredential userCredential;
-
-      if (isPhone) {
-        // Connexion par téléphone (non implémentée pour l'instant)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connexion par téléphone non encore implémentée'),
-          ),
-        );
-        setState(() => _isLoading = false);
-        return;
-      } else {
-        userCredential = await _auth.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      }
-
-      if (userCredential.user != null) {
-        // Naviguer vers Home et remplacer la page login
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } on FirebaseAuthException catch (e) {
-      String message = 'Erreur inconnue';
-      if (e.code == 'user-not-found') {
-        message = 'Utilisateur non trouvé';
-      } else if (e.code == 'wrong-password') {
-        message = 'Mot de passe incorrect';
-      } else if (e.code == 'invalid-email') {
-        message = 'Email invalide';
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+      final userCredential = await _loginWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
       );
+      print("UID de l'utilisateur connecté : ${userCredential.user?.uid}");
+      final userProfile = await _fetchUserProfile(userCredential.user!.uid);
+      print("Données récupérées de Firestore : $userProfile");
+      if (userProfile == null) {
+        _showSnack("Profil utilisateur introuvable");
+        return;
+      }
+      print("l'itulisateur est ${userProfile.email}");
+      _updateAppState(userProfile);
+      Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      _handleAuthError(e);
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
+  }
+
+  Future<UserCredential> _loginWithEmail(String email, String password) {
+    return _auth.signInWithEmailAndPassword(email: email, password: password);
+  }
+
+  Future<UserProfile?> _fetchUserProfile(String uid) {
+    final userService = UserService();
+
+    return userService.getUserProfile(uid);
+  }
+
+  void _updateAppState(UserProfile profile) {
+    Provider.of<AppState>(context, listen: false).login(profile);
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _handleAuthError(FirebaseAuthException e) {
+    String message;
+    switch (e.code) {
+      case 'user-not-found':
+        message = 'Utilisateur non trouvé';
+        break;
+      case 'wrong-password':
+        message = 'Mot de passe incorrect';
+        break;
+      case 'invalid-email':
+        message = 'Email invalide';
+        break;
+      default:
+        message = 'Erreur: ${e.message}';
+    }
+    _showSnack(message);
+    print('Firebase Auth Error: ${e.code} - ${e.message}');
   }
 
   @override
@@ -182,12 +207,32 @@ class _LoginPageState extends State<LoginPage> {
 
                   SizedBox(
                     height: 50,
-                    child: ElevatedButton(
-                      // onPressed: _isLoading ? null : _signIn,
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/home');
-                      },
+                    // child: ElevatedButton(
+                    //   //onPressed: _isLoading ? null : _signIn,
+                    //   onPressed: () {
+                    //     Navigator.pushNamed(context, '/home');
+                    //   },
 
+                    //   style: ElevatedButton.styleFrom(
+                    //     backgroundColor: const Color(0xFF1976D2),
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(12),
+                    //     ),
+                    //   ),
+                    //   child: _isLoading
+                    //       ? const CircularProgressIndicator(
+                    //           color: Colors.white,
+                    //         )
+                    //       : const Text(
+                    //           'Se connecter',
+                    //           style: TextStyle(
+                    //             fontSize: 16,
+                    //             fontWeight: FontWeight.bold,
+                    //           ),
+                    //         ),
+                    // ),
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _signIn,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1976D2),
                         shape: RoundedRectangleBorder(
@@ -195,9 +240,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
+                          ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               'Se connecter',
                               style: TextStyle(

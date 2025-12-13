@@ -3,7 +3,7 @@ import 'package:projet_flutter/state/app_state.dart';
 import 'package:provider/provider.dart';
 import '../../app.dart';
 import '../../models/app_ride_models.dart';
-import '../../services/ride_service.dart';
+import '../../controller/ride_controller.dart';
 import 'ride_details_page.dart';
 import 'package:intl/intl.dart';
 

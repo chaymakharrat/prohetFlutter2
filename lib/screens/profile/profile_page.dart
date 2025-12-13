@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
-import '../../screens/view/booking_page.dart';
+import '../ride/booking_page.dart';
 
 class ProfilePage extends StatefulWidget {
   static const String routeName = '/profile';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:projet_flutter/screens/view/publish_ride_page.dart';
-import 'package:projet_flutter/screens/view/ride_list_page.dart';
+import 'package:projet_flutter/screens/ride/publish_ride_page.dart';
+import 'package:projet_flutter/screens/ride/ride_list_page.dart';
 
 
 class SearchRidePage extends StatefulWidget {

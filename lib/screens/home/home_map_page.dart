@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as ll;
-import 'package:projet_flutter/screens/view/profile_page.dart';
-// import 'package:projet_flutter/screens/view/splash_page.dart';
+import 'package:projet_flutter/screens/profile/profile_page.dart';
 import 'package:provider/provider.dart';
 import 'package:string_similarity/string_similarity.dart';
 import '../../models/app_ride_models.dart';
-import '../../services/location_service.dart';
+import '../../controller/location_controller.dart';
 import '../../services/routing_service.dart';
-import 'ride_list_page.dart';
-import 'publish_ride_page.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../state/app_state.dart';
+import '../ride/ride_list_page.dart';
+import '../ride/publish_ride_page.dart';
 
 class HomeMapPage extends StatefulWidget {
   const HomeMapPage({super.key, this.showMap = true});
