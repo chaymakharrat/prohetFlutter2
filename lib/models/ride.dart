@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'app_ride_models.dart';
 
 class LocationPoint {
   final double latitude;
@@ -15,21 +16,21 @@ class LocationPoint {
   String toString() => '($latitude,$longitude) $label';
 }
 
-class UserProfile {
-  final String id;
-  final String name;
-  final double rating; // 0..5
-  final String avatarUrl;
-  final String phone;
+// class UserProfile {
+//   final String id;
+//   final String name;
+//   final double rating; // 0..5
+//   final String avatarUrl;
+//   final String phone;
 
-  const UserProfile({
-    required this.id,
-    required this.name,
-    this.rating = 4.5,
-    this.avatarUrl = '',
-    this.phone = '',
-  });
-}
+//   const UserProfile({
+//     required this.id,
+//     required this.name,
+//     this.rating = 4.5,
+//     this.avatarUrl = '',
+//     this.phone = '',
+//   });
+// }
 
 @immutable
 class Ride {
@@ -42,8 +43,9 @@ class Ride {
   final double pricePerSeat;
   final double distanceKm; // optional precomputed distance
   final double durationMin; // optional precomputed duration
+  double reserverSeats;
 
-  const Ride({
+  Ride({
     required this.id,
     required this.driver,
     required this.origin,
@@ -53,6 +55,7 @@ class Ride {
     required this.pricePerSeat,
     this.distanceKm = 0,
     this.durationMin = 0,
+    this.reserverSeats = 0,
   });
 
   Ride copyWith({
@@ -80,9 +83,9 @@ class FilterOptions {
   final DateTime? earliestDeparture;
   final double? maxPrice;
 
-  const FilterOptions({this.maxDistanceKm, this.earliestDeparture, this.maxPrice});
+  const FilterOptions({
+    this.maxDistanceKm,
+    this.earliestDeparture,
+    this.maxPrice,
+  });
 }
-
-
-
-

@@ -3,16 +3,17 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:projet_flutter/screens/view/profile_page.dart';
+// import 'package:projet_flutter/screens/view/splash_page.dart';
 import 'package:provider/provider.dart';
 import 'package:string_similarity/string_similarity.dart';
-import '../../app.dart';
-import '../../models/ride.dart';
+import '../../models/app_ride_models.dart';
 import '../../services/location_service.dart';
 import '../../services/routing_service.dart';
 import 'ride_list_page.dart';
 import 'publish_ride_page.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../state/app_state.dart';
 
 class HomeMapPage extends StatefulWidget {
   const HomeMapPage({super.key, this.showMap = true});
@@ -353,6 +354,56 @@ class _HomeMapPageState extends State<HomeMapPage> {
     ]);
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue.shade700,
+        title: const Text(
+          'Carte',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        elevation: 4, // élévation pour ombre
+        shadowColor: Colors.black.withOpacity(0.2), // couleur de l'ombre
+        iconTheme: const IconThemeData(color: Colors.white),
+
+        // Action: avatar avec indicateur de statut
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(50),
+              onTap: () => Navigator.pushNamed(context, ProfilePage.routeName),
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      app.currentUser?.name[0].toUpperCase() ?? 'U',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.green, // statut en ligne
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+
       body: Stack(
         children: [
           widget.showMap
@@ -506,10 +557,14 @@ class _HomeMapPageState extends State<HomeMapPage> {
                             ),
                             elevation: 5,
                           ),
+                          // onPressed: () {
+                          //   Navigator.pushNamed(context, '/'); // juste ça
+                          // },
                           onPressed: () => Navigator.pushNamed(
                             context,
-                            // PublishRidePage.routeName,
-                            ProfilePage.routeName,
+                            PublishRidePage.routeName,
+
+                            //ProfilePage.routeName,
                           ),
                           icon: const Icon(Icons.add),
                           label: const Text(

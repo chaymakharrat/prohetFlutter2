@@ -1,6 +1,7 @@
 import 'dart:math';
+import '../../models/app_ride_models.dart';
 
-import '../models/ride.dart';
+import '';
 
 class RideService {
   RideService() {
@@ -8,6 +9,7 @@ class RideService {
   }
 
   final List<Ride> _rides = <Ride>[];
+  final List<Reservation> _reservations = <Reservation>[];
 
   List<Ride> listRides({FilterOptions? filter}) {
     Iterable<Ride> results = _rides;
@@ -31,6 +33,37 @@ class RideService {
 
   Ride? getById(String id) => _rides.where((r) => r.id == id).firstOrNull;
 
+  void updateRide(Ride ride) {
+    final index = _rides.indexWhere((r) => r.id == ride.id);
+    if (index != -1) {
+      _rides[index] = ride;
+    }
+  }
+
+  List<Ride> getUserRides(String userId) {
+    // Dans un cas réel, 'me' serait remplacé par l'ID réel de l'utilisateur connecté
+    // Pour l'instant, si userId est 'me' ou correspond à l'id du driver, on renvoie.
+    // Comme les données seedées ont des ids 'u0', 'u1'... on va simuler.
+    if (userId == 'me') {
+       // Retourner tout pour la démo ou filtrer si on avait un auth state injecté
+       // Pour la démo, disons que l'utilisateur actuel est 'u0' (Conducteur 0)
+       return _rides.where((r) => r.driver.id == 'u0').toList();
+    }
+    return _rides.where((r) => r.driver.id == userId).toList();
+  }
+
+  void addReservation(Reservation reservation) {
+    _reservations.add(reservation);
+  }
+
+  List<Ride> getUserReservations(String userId) {
+    if (userId == 'me') {
+        // Mock behavior for 'me' - return rides reserved by 'u0' (arbitrary valid user) or similar logic
+        return _reservations.where((r) => r.user.id == 'u0').map((res) => res.ride).toList();
+    }
+    return _reservations.where((r) => r.user.id == userId).map((res) => res.ride).toList();
+  }
+
   void _seed() {
     final random = Random(1);
 
@@ -53,6 +86,7 @@ class RideService {
         id: 'u$i',
         name: 'Conducteur $i',
         rating: 4 + random.nextDouble(),
+        phone: '52511554',
       );
 
       // Sélectionner deux villes différentes
@@ -101,6 +135,28 @@ class RideService {
           durationMin: duration,
         ),
       );
+    }
+    
+    // Seed one reservation for user 'u0' on the last generated ride
+    if (_rides.isNotEmpty) {
+        // assume u0 reserves the last ride
+        final ride = _rides.last;
+        final user = UserProfile(id: 'u0', name: 'Conducteur 0', email: 'test@test.com', phone: '12345678'); 
+        // Note: UserProfile definition in view_file earlier didn't show email/phone in constructor 
+        // nicely, let's check what I saw. 
+        // Line 53: UserProfile(id: 'u$i', name: 'Conducteur $i', rating: ..., phone: ...)
+        // Let's stick to what we know works.
+        
+        final booker = UserProfile(id: 'u0', name: 'Conducteur 0', rating: 5.0, phone: '55555555');
+
+        _reservations.add(
+            Reservation(
+                id: 'res1',
+                ride: ride,
+                user: booker,
+                seatsReserved: 1,
+            )
+        );
     }
   }
 

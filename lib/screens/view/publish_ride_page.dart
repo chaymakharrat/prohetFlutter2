@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../app.dart';
-import '../../models/ride.dart';
+import '../../models/app_ride_models.dart';
+import '../../state/app_state.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PublishRidePage extends StatefulWidget {
   static const String routeName = '/publish';
-  const PublishRidePage({super.key});
+
+  final Ride? rideToEdit; // null = nouveau trajet
+  const PublishRidePage({super.key, this.rideToEdit});
 
   @override
   State<PublishRidePage> createState() => _PublishRidePageState();
@@ -13,8 +16,8 @@ class PublishRidePage extends StatefulWidget {
 
 class _PublishRidePageState extends State<PublishRidePage> {
   final _formKey = GlobalKey<FormState>();
-  final _priceController = TextEditingController(text: '10');
-  final _seatsController = TextEditingController(text: '3');
+  final _priceController = TextEditingController();
+  final _seatsController = TextEditingController();
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
   DateTime _dateTime = DateTime.now().add(const Duration(hours: 1));
@@ -23,25 +26,33 @@ class _PublishRidePageState extends State<PublishRidePage> {
   void initState() {
     super.initState();
     final app = Provider.of<AppState>(context, listen: false);
-    // Pré-remplir départ et destination depuis AppState
-    if (app.origin != null) {
-      _fromController.text = app.origin!.label ?? '';
-    }
-    if (app.destination != null) {
-      _toController.text = app.destination!.label ?? '';
+
+    if (widget.rideToEdit != null) {
+      final ride = widget.rideToEdit!;
+      _fromController.text = ride.origin.label;
+      _toController.text = ride.destination.label;
+      _priceController.text = ride.pricePerSeat.toString();
+      _seatsController.text = ride.availableSeats.toString();
+      _dateTime = ride.departureTime;
+    } else {
+      if (app.origin != null) _fromController.text = app.origin!.label!;
+      if (app.destination != null) _toController.text = app.destination!.label!;
+      _priceController.text = '10';
+      _seatsController.text = '3';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
+    final isEdit = widget.rideToEdit != null;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         elevation: 0,
-        title: const Text('Publier votre trajet'),
+        title: Text(isEdit ? 'Modifier le trajet' : 'Publier votre trajet'),
         centerTitle: true,
       ),
       body: Column(
@@ -71,20 +82,16 @@ class _PublishRidePageState extends State<PublishRidePage> {
             ),
           ),
 
-          // --- Corps principal ---
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const SizedBox(height: 10),
                 const SizedBox(height: 24),
-
                 Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- Prix et nombre de places côte à côte ---
                       Row(
                         children: [
                           Expanded(
@@ -106,9 +113,8 @@ class _PublishRidePageState extends State<PublishRidePage> {
                               validator: (v) {
                                 if (v == null || v.isEmpty) return 'Requis';
                                 final val = double.tryParse(v);
-                                if (val == null || val <= 0) {
+                                if (val == null || val <= 0)
                                   return 'Entrer un prix valide';
-                                }
                                 return null;
                               },
                             ),
@@ -130,19 +136,16 @@ class _PublishRidePageState extends State<PublishRidePage> {
                               validator: (v) {
                                 if (v == null || v.isEmpty) return 'Requis';
                                 final n = int.tryParse(v);
-                                if (n == null || n <= 0 || n > 4) {
+                                if (n == null || n <= 0 || n > 4)
                                   return 'Entre 1 et 4';
-                                }
                                 return null;
                               },
                             ),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 20),
-
-                      // --- Date et heure ---
+                      // Date et heure
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
@@ -155,8 +158,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
                           ),
                           title: const Text('Date et heure de départ'),
                           subtitle: Text(
-                            "${_dateTime.day.toString().padLeft(2, '0')}/${_dateTime.month.toString().padLeft(2, '0')} "
-                            "${_dateTime.hour.toString().padLeft(2, '0')}:${_dateTime.minute.toString().padLeft(2, '0')}",
+                            "${_dateTime.day.toString().padLeft(2, '0')}/${_dateTime.month.toString().padLeft(2, '0')} ${_dateTime.hour.toString().padLeft(2, '0')}:${_dateTime.minute.toString().padLeft(2, '0')}",
                           ),
                           onTap: () async {
                             final date = await showDatePicker(
@@ -192,7 +194,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
             ),
           ),
 
-          // --- Bouton Publier ---
+          // --- Bouton Publier / Modifier ---
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
@@ -206,40 +208,60 @@ class _PublishRidePageState extends State<PublishRidePage> {
                   ),
                   elevation: 3,
                 ),
-                icon: const Icon(Icons.publish, size: 24),
-                label: const Text(
-                  'Publier le trajet',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                icon: Icon(isEdit ? Icons.edit : Icons.publish, size: 24),
+                label: Text(
+                  isEdit ? 'Modifier le trajet' : 'Publier le trajet',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                onPressed: () {
+                onPressed: () async {
                   if (!_formKey.currentState!.validate()) return;
 
-                  if (app.origin == null || app.destination == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Veuillez choisir départ et destination sur la carte',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-
                   final ride = Ride(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    driver: const UserProfile(id: 'me', name: 'Moi'),
-                    origin: app.origin!,
-                    destination: app.destination!,
+                    id: isEdit
+                        ? widget.rideToEdit!.id
+                        : DateTime.now().millisecondsSinceEpoch.toString(),
+                    driver: UserProfile(
+                      id: 'me',
+                      name: 'Moi',
+                      email: 'me@example.com',
+                      phone: '12345678',
+                    ),
+                    origin: widget.rideToEdit?.origin ?? app.origin!,
+                    destination:
+                        widget.rideToEdit?.destination ?? app.destination!,
                     departureTime: _dateTime,
                     availableSeats: int.parse(_seatsController.text),
                     pricePerSeat: double.parse(_priceController.text),
+                    reserverSeats: 0,
                   );
 
-                  app.rideService.addRide(ride);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Trajet publié ✅')),
-                  );
+                  if (isEdit) {
+                    app.rideService.updateRide(ride);
+
+                    // Envoi WhatsApp aux passagers
+                    final reservations = app.getReservationsForRide(ride.id);
+                    for (var res in reservations) {
+                      final Uri whatsappUri = Uri.parse(
+                        "https://wa.me/${res.user.phone}?text=${Uri.encodeComponent('Bonjour ${res.user.name}, le trajet a été modifié.')}",
+                      );
+                      if (await canLaunchUrl(whatsappUri))
+                        await launchUrl(whatsappUri);
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Modification envoyée aux passagers via WhatsApp',
+                        ),
+                      ),
+                    );
+                  } else {
+                    app.rideService.addRide(ride);
+                  }
+
+                  Navigator.pushReplacementNamed(context, '/userRides');
                 },
               ),
             ),
@@ -249,7 +271,6 @@ class _PublishRidePageState extends State<PublishRidePage> {
     );
   }
 
-  // --- Widgets réutilisables ---
   Widget _buildLocationField({
     required TextEditingController controller,
     required String hint,

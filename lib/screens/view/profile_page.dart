@@ -1,186 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../app.dart';
+import '../../state/app_state.dart';
+import '../../screens/view/booking_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   static const String routeName = '/profile';
   const ProfilePage({super.key});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
   Widget build(BuildContext context) {
+    final app = context.watch<AppState>();
+    final user = app.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: Text("Utilisateur non connecté")),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: const Color(0xFFE3F2FD),
+      backgroundColor: const Color(0xFFF4F7FB),
       body: SafeArea(
         child: Column(
           children: [
-            // Header bleu avec dégradé
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1976D2), Color(0xFF00AEEF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      // Avatar
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.person,
-                          color: Color(0xFF1976D2),
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Nom et note
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.star, color: Colors.white, size: 20),
-                                SizedBox(width: 4),
-                                Text(
-                                  '5',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              'Your name',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Bouton fermer
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Contenu principal
+            _buildHeader(context, user),
             Expanded(
-              child: Padding(
+              child: ListView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    // Options du profil
-                    _buildProfileOption(
-                      Icons.phone,
-                      'Dolor sit',
-                      Colors.blueAccent,
-                    ),
-                    _buildProfileOption(Icons.home, 'Lorem ipsum', Colors.teal),
-                    _buildProfileOption(
-                      Icons.person,
-                      'Dolor sit',
-                      Colors.orange,
-                    ),
-                    _buildProfileOption(Icons.eco, 'Amet', Colors.green),
-                    _buildProfileOption(
-                      Icons.business,
-                      'Lorem ipsum',
-                      Colors.purple,
-                    ),
-                    _buildProfileOption(
-                      Icons.settings,
-                      'Dolor sit',
-                      Colors.deepOrange,
-                    ),
-                    const Spacer(),
-                    // Boutons d'action
-                    SizedBox(
-                      width: double.infinity,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1976D2), Color(0xFF00AEEF)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/chat');
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Lorem ipsum',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          final app = context.read<AppState>();
-                          app.isLoggedIn = false;
-                          app.currentUserId = null;
-                          Navigator.pushReplacementNamed(context, '/login');
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF1976D2),
-                          side: const BorderSide(color: Color(0xFF1976D2)),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Lorem ipsum',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                children: [
+                  _sectionTitle("Informations personnelles"),
+                  _infoTile(
+                      icon: Icons.phone, title: "Téléphone", value: user.phone),
+                  _infoTile(
+                      icon: Icons.email, title: "Email", value: user.email),
+                  const SizedBox(height: 20),
+                  _sectionTitle("Vos activités"),
+                  _actionTile(
+                    icon: Icons.directions_car,
+                    title: "Trajets proposés",
+                    color: Colors.blue,
+                    onTap: () => Navigator.pushNamed(context, '/userRides'),
+                  ),
+                  _actionTile(
+                    icon: Icons.event_seat,
+                    title: "Trajets réservés",
+                    color: Colors.green,
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        BookingPage.routeName,
+                        arguments: {'showUserReservations': true},
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 30),
+                  _logoutButton(context),
+                ],
               ),
             ),
           ],
@@ -189,47 +69,178 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileOption(IconData icon, String title, Color bgColor) {
+  // ----------------------------- HEADER -----------------------------
+  Widget _buildHeader(BuildContext context, user) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1976D2), Color(0xFF00AEEF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(26),
+          bottomRight: Radius.circular(26),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+        child: Row(
+          children: [
+            // Avatar
+            CircleAvatar(
+              radius: 42,
+              backgroundColor: Colors.white.withOpacity(0.9),
+              child: Text(
+                user.name[0].toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1976D2),
+                ),
+              ),
+            ),
+            const SizedBox(width: 18),
+            // Nom + rating
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.name,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+              ),
+            ),
+            // Close button
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close, color: Colors.white, size: 26),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ----------------------------- SECTION TITLE -----------------------------
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 6, bottom: 10),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF1A237E),
+        ),
+      ),
+    );
+  }
+
+  // ----------------------------- INFO TILE -----------------------------
+  Widget _infoTile(
+      {required IconData icon, required String title, required String value}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.blueGrey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 28, color: const Color(0xFF1976D2)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------------------- ACTION TILE -----------------------------
+  Widget _actionTile({
+    required IconData icon,
+    required String title,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 18),
         leading: Container(
-          width: 40,
-          height: 40,
+          height: 46,
+          width: 46,
           decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(8),
+            color: color.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: color, size: 24),
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  // ----------------------------- LOGOUT BUTTON -----------------------------
+  Widget _logoutButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: Color(0xFF1976D2)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        onPressed: () {
+          Provider.of<AppState>(context, listen: false).logout();
+          Navigator.pushReplacementNamed(context, '/login');
+        },
+        child: const Text(
+          "Déconnexion",
+          style: TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF424242),
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1976D2),
           ),
         ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          color: Color(0xFF9E9E9E),
-          size: 16,
-        ),
-        onTap: () {
-          // Action pour chaque option
-        },
       ),
     );
   }

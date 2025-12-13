@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
-import '../../models/ride.dart';
+import '../../models/app_ride_models.dart';
+import '../../screens/view/booking_page.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../../state/app_state.dart';
 
-class RideDetailsPage extends StatelessWidget {
+class RideDetailsPage extends StatefulWidget {
   static const String routeName = '/rideDetails';
   final Ride ride;
 
   const RideDetailsPage({super.key, required this.ride});
 
   @override
+  State<RideDetailsPage> createState() => _RideDetailsPageState();
+}
+
+class _RideDetailsPageState extends State<RideDetailsPage> {
+  int seats = 1; // compteur de sièges
+  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final ride = widget.ride;
+
     return Scaffold(
       backgroundColor: const Color(0xFFE3F2FD),
       appBar: AppBar(
@@ -97,7 +110,7 @@ class RideDetailsPage extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // 👤 Conducteur
           Card(
@@ -166,7 +179,7 @@ class RideDetailsPage extends StatelessWidget {
                   _infoRow(
                     Icons.access_time,
                     'Heure de départ',
-                    '${ride.departureTime.hour.toString().padLeft(2, '0')}:${ride.departureTime.minute.toString().padLeft(2, '0')}',
+                    dateFormat.format(ride.departureTime),
                   ),
                   _divider(),
                   _infoRow(
@@ -184,31 +197,68 @@ class RideDetailsPage extends StatelessWidget {
               ),
             ),
           ),
+
+          const SizedBox(height: 12),
+
+          // 🔘 Nombre de sièges
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 3,
+            shadowColor: Colors.blueGrey.withOpacity(0.1),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Nombre de sièges :',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0D47A1),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove),
+                        onPressed: seats > 1
+                            ? () => setState(() => seats--)
+                            : null,
+                      ),
+                      Text(
+                        seats.toString(),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0D47A1),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        onPressed:
+                            (ride.availableSeats - ride.reserverSeats > 0 &&
+                                seats <
+                                    ride.availableSeats - ride.reserverSeats)
+                            ? () => setState(() => seats++)
+                            : null, // Désactivé si plus de places
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
-
-      // 🔘 Boutons en bas
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1976D2),
-                    side: const BorderSide(color: Color(0xFF1976D2)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {},
-                  icon: const Icon(Icons.chat_outlined),
-                  label: const Text('Contacter'),
-                ),
-              ),
-              const SizedBox(width: 12),
+              // Bouton Contacter
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -228,9 +278,153 @@ class RideDetailsPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: () {},
-                    icon: const Icon(Icons.event_seat),
-                    label: const Text('Réserver'),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        builder: (context) => Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ride.driver.name,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(
+                                    0xFF0D47A1,
+                                  ), // bleu foncé comme les titres
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.email,
+                                    color: Color(0xFF1976D2),
+                                  ), // bleu cohérent
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    ride.driver.email,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.phone,
+                                    color: Color(0xFF1976D2),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    ride.driver.phone,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.star, color: Colors.amber),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${ride.driver.rating.toStringAsFixed(1)} / 5',
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat_outlined, color: Colors.white),
+                    label: const Text(
+                      'Contacter',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // Bouton Réserver
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: (ride.availableSeats - ride.reserverSeats > 0)
+                        ? const LinearGradient(
+                            colors: [Color(0xFF1976D2), Color(0xFF00AEEF)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: (ride.availableSeats - ride.reserverSeats > 0)
+                        ? null
+                        : Colors.grey, // gris si complet
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: (ride.availableSeats - ride.reserverSeats > 0)
+                        ? () {
+                            final appState = context.read<AppState>();
+
+                            // Ajouter la réservation
+                            appState.reserveRide(ride, seats);
+
+                            setState(() {
+                              ride.reserverSeats += seats;
+                            });
+                            appState.rideService.updateRide(ride);
+
+                            // Confirmation
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '$seats place(s) réservée(s) avec succès !',
+                                ),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+
+                            Navigator.pushNamed(
+                              context,
+                              BookingPage.routeName,
+                              arguments: {'showUserReservations': true},
+                            );
+                          }
+                        : null, // désactivé si complet
+                    icon: const Icon(Icons.event_seat, color: Colors.white),
+                    label: Text(
+                      (ride.availableSeats - ride.reserverSeats > 0)
+                          ? 'Réserver'
+                          : 'Complet',
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
               ),

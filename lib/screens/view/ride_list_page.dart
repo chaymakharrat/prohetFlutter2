@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:projet_flutter/state/app_state.dart';
 import 'package:provider/provider.dart';
 import '../../app.dart';
-import '../../models/ride.dart';
+import '../../models/app_ride_models.dart';
 import '../../services/ride_service.dart';
 import 'ride_details_page.dart';
+import 'package:intl/intl.dart';
+
 
 class RideListPage extends StatefulWidget {
   static const String routeName = '/rides';
@@ -15,6 +18,7 @@ class RideListPage extends StatefulWidget {
 
 class _RideListPageState extends State<RideListPage> {
   double? _maxPrice;
+  final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +175,7 @@ class _RideListPageState extends State<RideListPage> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${ride.departureTime.hour.toString().padLeft(2, '0')}:${ride.departureTime.minute.toString().padLeft(2, '0')}  •  ${ride.distanceKm.toStringAsFixed(1)} km  •  ${ride.availableSeats} places',
+                                      '${dateFormat.format(ride.departureTime)}  •  ${ride.distanceKm.toStringAsFixed(1)} km  •  ${ride.availableSeats - ride.reserverSeats} places',
                                       style: const TextStyle(
                                         color: Colors.grey,
                                         fontSize: 13,

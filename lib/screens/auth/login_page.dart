@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,6 +14,8 @@ class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -20,6 +23,53 @@ class _LoginPageState extends State<LoginPage> {
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential userCredential;
+
+      if (isPhone) {
+        // Connexion par téléphone (non implémentée pour l'instant)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connexion par téléphone non encore implémentée'),
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      } else {
+        userCredential = await _auth.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+      }
+
+      if (userCredential.user != null) {
+        // Naviguer vers Home et remplacer la page login
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'Erreur inconnue';
+      if (e.code == 'user-not-found') {
+        message = 'Utilisateur non trouvé';
+      } else if (e.code == 'wrong-password') {
+        message = 'Mot de passe incorrect';
+      } else if (e.code == 'invalid-email') {
+        message = 'Email invalide';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -51,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Connexion à Tayachni',
+                    'Connexion à Wesalnii',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -118,9 +168,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         activeColor: const Color(0xFF1976D2),
                       ),
-                      const Text('Se souvenir de moi'),
-                      const Spacer(),
-                      const Text(
+                      const Expanded(child: Text('Se souvenir de moi')),
+                      Text(
                         'Mot de passe oublié ?',
                         style: TextStyle(
                           color: Color(0xFF1976D2),
@@ -134,22 +183,28 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(
+                      // onPressed: _isLoading ? null : _signIn,
                       onPressed: () {
                         Navigator.pushNamed(context, '/home');
                       },
+
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1976D2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Se connecter',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                          : const Text(
+                              'Se connecter',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
