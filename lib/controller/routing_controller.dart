@@ -19,7 +19,7 @@ class RouteResult {
   });
 }
 
-class RoutingService {
+class RoutingController {
   // Uses OSRM demo server; replace with Google Directions if needed.
   Future<RouteResult?> fetchRoute({
     required double fromLat,

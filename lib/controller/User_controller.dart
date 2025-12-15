@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_profile.dart';
 
-class UserService {
+class UserController {
   final _db = FirebaseFirestore.instance;
 
   Future<void> createUserProfile(UserProfile profile) async {

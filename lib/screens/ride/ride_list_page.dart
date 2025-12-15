@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:projet_flutter/state/app_state.dart';
-import 'package:provider/provider.dart';
-import '../../app.dart';
 import '../../models/app_ride_models.dart';
 import '../../controller/ride_controller.dart';
 import 'ride_details_page.dart';
 import 'package:intl/intl.dart';
-
 
 class RideListPage extends StatefulWidget {
   static const String routeName = '/rides';
@@ -19,13 +15,31 @@ class RideListPage extends StatefulWidget {
 class _RideListPageState extends State<RideListPage> {
   double? _maxPrice;
   final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+  final RideController _controller = RideController();
+
+  late Future<List<RideDTO>> _ridesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRides();
+  }
+
+  void _loadRides() {
+    _ridesFuture = _controller.listRides(
+      filter: FilterOptions(maxPrice: _maxPrice),
+    );
+  }
+
+  void _onSliderChanged(double value) {
+    setState(() {
+      _maxPrice = value;
+      _loadRides();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppState>();
-    final RideService service = app.rideService;
-    final rides = service.listRides(filter: FilterOptions(maxPrice: _maxPrice));
-
     return Scaffold(
       backgroundColor: const Color(0xFFE3F2FD),
       appBar: AppBar(
@@ -97,7 +111,7 @@ class _RideListPageState extends State<RideListPage> {
                   label: _maxPrice == null
                       ? 'Sans limite'
                       : '${_maxPrice!.round()} DT',
-                  onChanged: (v) => setState(() => _maxPrice = v),
+                  onChanged: _onSliderChanged,
                 ),
               ],
             ),
@@ -105,8 +119,15 @@ class _RideListPageState extends State<RideListPage> {
 
           // Liste des trajets
           Expanded(
-            child: rides.isEmpty
-                ? const Center(
+            child: FutureBuilder<List<RideDTO>>(
+              future: _ridesFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Erreur: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
                     child: Text(
                       'Aucun trajet disponible 😔',
                       style: TextStyle(
@@ -115,106 +136,112 @@ class _RideListPageState extends State<RideListPage> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: rides.length,
-                    itemBuilder: (context, index) {
-                      final ride = rides[index];
-                      return GestureDetector(
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          RideDetailsPage.routeName,
-                          arguments: ride,
-                        ),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blueGrey.withOpacity(0.1),
-                                blurRadius: 6,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 26,
-                                backgroundColor: const Color(0xFFBBDEFB),
-                                child: Text(
-                                  ride.driver.name
-                                      .substring(0, 1)
-                                      .toUpperCase(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1976D2),
-                                    fontSize: 20,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${ride.origin.label} → ${ride.destination.label}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF0D47A1),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${dateFormat.format(ride.departureTime)}  •  ${ride.distanceKm.toStringAsFixed(1)} km  •  ${ride.availableSeats - ride.reserverSeats} places',
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 6,
-                                  horizontal: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF1976D2),
-                                      Color(0xFF00AEEF),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${ride.pricePerSeat.toStringAsFixed(0)} DT',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                  );
+                }
+
+                final rides = snapshot.data!;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
                   ),
+                  itemCount: rides.length,
+                  itemBuilder: (context, index) {
+                    final rideDTO = rides[index];
+                    return GestureDetector(
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        RideDetailsPage.routeName,
+                        arguments: rideDTO,
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blueGrey.withOpacity(0.1),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 26,
+                              backgroundColor: const Color(0xFFBBDEFB),
+                              child: Text(
+                                rideDTO.driver.name
+                                    .substring(0, 1)
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1976D2),
+                                  fontSize: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${rideDTO.ride.origin.label} → ${rideDTO.ride.destination.label}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF0D47A1),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${dateFormat.format(rideDTO.ride.departureTime)}  •  ${rideDTO.ride.distanceKm.toStringAsFixed(1)} km  •  ${rideDTO.ride.availableSeats - rideDTO.ride.reserverSeats} places',
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6,
+                                horizontal: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF1976D2),
+                                    Color(0xFF00AEEF),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${rideDTO.ride.pricePerSeat.toStringAsFixed(0)} DT',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),

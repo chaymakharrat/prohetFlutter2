@@ -74,9 +74,10 @@ class RideShareApp extends StatelessWidget {
         },
         onGenerateRoute: (settings) {
           if (settings.name == RideDetailsPage.routeName) {
-            final ride = settings.arguments as Ride;
+            final rideDTO = settings.arguments as RideDTO;
+
             return MaterialPageRoute(
-              builder: (_) => RideDetailsPage(ride: ride),
+              builder: (_) => RideDetailsPage(rideDTO: rideDTO),
             );
           }
           return null;

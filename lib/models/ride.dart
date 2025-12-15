@@ -1,51 +1,24 @@
-import 'package:flutter/foundation.dart';
-import 'app_ride_models.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:projet_flutter/models/location.dart';
 
-// class LocationPoint {
-//   final double latitude;
-//   final double longitude;
-//   final String label;
+enum RideStatus { active, cancelled }
 
-//   const LocationPoint({
-//     required this.latitude,
-//     required this.longitude,
-//     this.label = '',
-//   });
-
-//   @override
-//   String toString() => '($latitude,$longitude) $label';
-// }
-
-// class UserProfile {
-//   final String id;
-//   final String name;
-//   final double rating; // 0..5
-//   final String avatarUrl;
-//   final String phone;
-
-//   const UserProfile({
-//     required this.id,
-//     required this.name,
-//     this.rating = 4.5,
-//     this.avatarUrl = '',
-//     this.phone = '',
-//   });
-// }
 class Ride {
   final String id;
-  final UserProfile driver;
+  final String driverId;
   final LocationPoint origin;
   final LocationPoint destination;
   final DateTime departureTime;
   final int availableSeats;
   final double pricePerSeat;
-  final double distanceKm; // optional precomputed distance
-  final double durationMin; // optional precomputed duration
+  final double distanceKm;
+  final double durationMin;
   double reserverSeats;
+  final RideStatus status; // Nouveau champ simple
 
   Ride({
     required this.id,
-    required this.driver,
+    required this.driverId,
     required this.origin,
     required this.destination,
     required this.departureTime,
@@ -54,36 +27,55 @@ class Ride {
     this.distanceKm = 0,
     this.durationMin = 0,
     this.reserverSeats = 0,
+    this.status = RideStatus.active, // par défaut actif
   });
 
-  Ride copyWith({
-    int? availableSeats,
-    double? distanceKm,
-    double? durationMin,
-    double? pricePerSeat,
-  }) {
+  Map<String, dynamic> toMap() {
+    return {
+      'driverId': driverId,
+      'origin': origin.toMap(),
+      'destination': destination.toMap(),
+      'departureTime': Timestamp.fromDate(departureTime),
+      'availableSeats': availableSeats,
+      'pricePerSeat': pricePerSeat,
+      'distanceKm': distanceKm,
+      'durationMin': durationMin,
+      'reserverSeats': reserverSeats,
+      'status': status.name, // stocké comme string
+    };
+  }
+
+  factory Ride.fromMap(String id, Map<String, dynamic> map) {
     return Ride(
       id: id,
-      driver: driver,
+      driverId: map['driverId'] ?? '',
+      origin: LocationPoint.fromMap(map['origin']),
+      destination: LocationPoint.fromMap(map['destination']),
+      departureTime: (map['departureTime'] as Timestamp).toDate(),
+      availableSeats: map['availableSeats'] ?? 0,
+      pricePerSeat: (map['pricePerSeat'] ?? 0).toDouble(),
+      distanceKm: (map['distanceKm'] ?? 0).toDouble(),
+      durationMin: (map['durationMin'] ?? 0).toDouble(),
+      reserverSeats: (map['reserverSeats'] ?? 0).toDouble(),
+      status: map['status'] == 'cancelled'
+          ? RideStatus.cancelled
+          : RideStatus.active,
+    );
+  }
+
+  Ride copyWith({RideStatus? status}) {
+    return Ride(
+      id: id,
+      driverId: driverId,
       origin: origin,
       destination: destination,
       departureTime: departureTime,
-      availableSeats: availableSeats ?? this.availableSeats,
-      pricePerSeat: pricePerSeat ?? this.pricePerSeat,
-      distanceKm: distanceKm ?? this.distanceKm,
-      durationMin: durationMin ?? this.durationMin,
+      availableSeats: availableSeats,
+      pricePerSeat: pricePerSeat,
+      distanceKm: distanceKm,
+      durationMin: durationMin,
+      reserverSeats: reserverSeats,
+      status: status ?? this.status,
     );
   }
 }
-
-// class FilterOptions {
-//   final double? maxDistanceKm;
-//   final DateTime? earliestDeparture;
-//   final double? maxPrice;
-
-//   const FilterOptions({
-//     this.maxDistanceKm,
-//     this.earliestDeparture,
-//     this.maxPrice,
-//   });
-// }

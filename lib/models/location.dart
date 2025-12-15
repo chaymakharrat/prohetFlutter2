@@ -9,9 +9,22 @@ class LocationPoint {
     this.label = '',
   });
 
+  Map<String, dynamic> toMap() {
+    return {'lat': latitude, 'lng': longitude, 'label': label};
+  }
+
+  factory LocationPoint.fromMap(Map<String, dynamic> map) {
+    return LocationPoint(
+      latitude: (map['lat'] as num).toDouble(),
+      longitude: (map['lng'] as num).toDouble(),
+      label: map['label'] ?? '',
+    );
+  }
+
   @override
   String toString() => '($latitude,$longitude) $label';
 }
+
 class FilterOptions {
   final double? maxDistanceKm;
   final DateTime? earliestDeparture;

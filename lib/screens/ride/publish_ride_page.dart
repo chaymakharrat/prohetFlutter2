@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:projet_flutter/controller/ride_controller.dart';
+//import 'package:projet_flutter/models/rideFire.dart';
 import 'package:provider/provider.dart';
 import '../../models/app_ride_models.dart';
 import '../../state/app_state.dart';
@@ -223,12 +225,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
                     id: isEdit
                         ? widget.rideToEdit!.id
                         : DateTime.now().millisecondsSinceEpoch.toString(),
-                    driver: UserProfile(
-                      id: 'me',
-                      name: 'Moi',
-                      email: 'me@example.com',
-                      phone: '12345678',
-                    ),
+                    driverId: app.currentUser!.id,
                     origin: widget.rideToEdit?.origin ?? app.origin!,
                     destination:
                         widget.rideToEdit?.destination ?? app.destination!,
@@ -239,17 +236,31 @@ class _PublishRidePageState extends State<PublishRidePage> {
                   );
 
                   if (isEdit) {
-                    app.rideService.updateRide(ride);
-
-                    // Envoi WhatsApp aux passagers
-                    final reservations = app.getReservationsForRide(ride.id);
-                    for (var res in reservations) {
-                      final Uri whatsappUri = Uri.parse(
-                        "https://wa.me/${res.user.phone}?text=${Uri.encodeComponent('Bonjour ${res.user.name}, le trajet a été modifié.')}",
+                    final rideController = RideController();
+                    try {
+                      await rideController.updateRide(ride);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Ride modifier avec succès !'),
+                        ),
                       );
-                      if (await canLaunchUrl(whatsappUri))
-                        await launchUrl(whatsappUri);
+                      Navigator.pop(context); // Retour à la page précédente
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Erreur lors de modification : $e'),
+                        ),
+                      );
                     }
+                    // // Envoi WhatsApp aux passagers
+                    // final reservations = app.getReservationsForRide(ride.id);
+                    // for (var res in reservations) {
+                    //   final Uri whatsappUri = Uri.parse(
+                    //     "https://wa.me/21652511554?text=${Uri.encodeComponent('Bonjour ${res.user.name}, le trajet a été modifié.')}",
+                    //   );
+                    //   if (await canLaunchUrl(whatsappUri))
+                    //     await launchUrl(whatsappUri);
+                    // }
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -258,9 +269,21 @@ class _PublishRidePageState extends State<PublishRidePage> {
                       ),
                     );
                   } else {
-                    app.rideService.addRide(ride);
+                    final rideController = RideController();
+                    try {
+                      await rideController.addRide(ride);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Ride ajouté avec succès !'),
+                        ),
+                      );
+                      Navigator.pop(context); // Retour à la page précédente
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erreur lors de l’ajout : $e')),
+                      );
+                    }
                   }
-
                   Navigator.pushReplacementNamed(context, '/userRides');
                 },
               ),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
+import 'package:projet_flutter/controller/reservation_controller.dart';
+//import 'package:projet_flutter/controller/ride_controller.dart';
+import 'package:projet_flutter/models/dto/ride_with_driver_dto.dart';
 import '../../models/app_ride_models.dart';
 import 'booking_page.dart';
 import 'package:intl/intl.dart';
@@ -9,9 +12,9 @@ import '../../state/app_state.dart';
 
 class RideDetailsPage extends StatefulWidget {
   static const String routeName = '/rideDetails';
-  final Ride ride;
+  final RideDTO rideDTO;
 
-  const RideDetailsPage({super.key, required this.ride});
+  const RideDetailsPage({super.key, required this.rideDTO});
 
   @override
   State<RideDetailsPage> createState() => _RideDetailsPageState();
@@ -23,7 +26,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ride = widget.ride;
+    final ride = widget.rideDTO.ride;
 
     return Scaffold(
       backgroundColor: const Color(0xFFE3F2FD),
@@ -123,7 +126,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
               leading: CircleAvatar(
                 backgroundColor: const Color(0xFFBBDEFB),
                 child: Text(
-                  ride.driver.name.substring(0, 1),
+                  widget.rideDTO.driver.name.substring(0, 1),
                   style: const TextStyle(
                     color: Color(0xFF1976D2),
                     fontWeight: FontWeight.bold,
@@ -131,7 +134,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                 ),
               ),
               title: Text(
-                ride.driver.name,
+                widget.rideDTO.driver.name,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -143,7 +146,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                   const Icon(Icons.star, color: Colors.amber, size: 16),
                   const SizedBox(width: 4),
                   Text(
-                    '${ride.driver.rating.toStringAsFixed(1)} / 5',
+                    '${widget.rideDTO.driver.rating.toStringAsFixed(1)} / 5',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ],
@@ -293,7 +296,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                ride.driver.name,
+                                widget.rideDTO.driver.name,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -311,7 +314,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                                   ), // bleu cohérent
                                   const SizedBox(width: 8),
                                   Text(
-                                    ride.driver.email,
+                                    widget.rideDTO.driver.email,
                                     style: const TextStyle(
                                       color: Colors.black87,
                                     ),
@@ -327,7 +330,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    ride.driver.phone,
+                                    widget.rideDTO.driver.phone,
                                     style: const TextStyle(
                                       color: Colors.black87,
                                     ),
@@ -340,7 +343,7 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                                   const Icon(Icons.star, color: Colors.amber),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '${ride.driver.rating.toStringAsFixed(1)} / 5',
+                                    '${widget.rideDTO.driver.rating.toStringAsFixed(1)} / 5',
                                     style: const TextStyle(
                                       color: Colors.black87,
                                     ),
@@ -389,35 +392,78 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                       ),
                     ),
                     onPressed: (ride.availableSeats - ride.reserverSeats > 0)
-                        ? () {
-                            final appState = context.read<AppState>();
+                        ? () async {
+                            try {
+                              final appState = context.read<AppState>();
+                              final currentUser = appState
+                                  .currentUser; // récupère l'utilisateur connecté
 
-                            // Ajouter la réservation
-                            appState.reserveRide(ride, seats);
+                              if (currentUser == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Utilisateur non connecté !'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
 
-                            setState(() {
-                              ride.reserverSeats += seats;
-                            });
-                            appState.rideService.updateRide(ride);
+                              final reservationController =
+                                  ReservationController();
 
-                            // Confirmation
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '$seats place(s) réservée(s) avec succès !',
+                              // Créer la réservation
+                              final reservation = Reservation(
+                                id: '',
+                                userId: currentUser.id,
+                                seatsReserved: seats,
+                                createdAt: DateTime.now(),
+                                rideId: ride.id,
+                              );
+
+                              // Ajouter la réservation
+                              await reservationController.addReservation(
+                                ride.id,
+                                reservation,
+                              );
+
+                              // Mettre à jour l'affichage localement
+                              setState(() {
+                                ride.reserverSeats += seats;
+                              });
+
+                              // Confirmation
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '$seats place(s) réservée(s) avec succès !',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                  duration: const Duration(seconds: 2),
                                 ),
-                                backgroundColor: Colors.green,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
+                              );
 
-                            Navigator.pushNamed(
-                              context,
-                              BookingPage.routeName,
-                              arguments: {'showUserReservations': true},
-                            );
+                              // Redirection vers la page des réservations
+                              Navigator.pushNamed(
+                                context,
+                                BookingPage.routeName,
+                                arguments: {'showUserReservations': true},
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Erreur lors de la réservation : $e',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           }
-                        : null, // désactivé si complet
+                        : null,
+
+                    // désactivé si complet
                     icon: const Icon(Icons.event_seat, color: Colors.white),
                     label: Text(
                       (ride.availableSeats - ride.reserverSeats > 0)

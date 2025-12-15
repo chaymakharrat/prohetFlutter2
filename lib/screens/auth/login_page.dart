@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:projet_flutter/controller/auth_controller.dart';
 import 'package:projet_flutter/models/user_profile.dart';
-import 'package:projet_flutter/controller/User_controller.dart';
+import 'package:projet_flutter/controller/user_controller.dart';
 import 'package:projet_flutter/state/app_state.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +18,6 @@ class _LoginPageState extends State<LoginPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isLoading = false;
 
   @override
@@ -37,18 +37,22 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      final userCredential = await _loginWithEmail(
+      final user = await _loginWithEmail(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
-      print("UID de l'utilisateur connecté : ${userCredential.user?.uid}");
-      final userProfile = await _fetchUserProfile(userCredential.user!.uid);
-      print("Données récupérées de Firestore : $userProfile");
+
+      if (user == null) {
+        _showSnack("Utilisateur introuvable");
+        return;
+      }
+
+      final userProfile = await _fetchUserProfile(user.uid);
       if (userProfile == null) {
         _showSnack("Profil utilisateur introuvable");
         return;
       }
-      print("l'itulisateur est ${userProfile.email}");
+
       _updateAppState(userProfile);
       Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
@@ -58,12 +62,13 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<UserCredential> _loginWithEmail(String email, String password) {
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
+  Future<User?> _loginWithEmail(String email, String password) async {
+    final authController = AuthController();
+    return await authController.signInWithEmail(email, password);
   }
 
   Future<UserProfile?> _fetchUserProfile(String uid) {
-    final userService = UserService();
+    final userService = UserController();
 
     return userService.getUserProfile(uid);
   }

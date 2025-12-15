@@ -1,6 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 
-class LocationService {
+class LocationController {
   /// Returns the current position or null if permission is denied or an error occurs.
   Future<Position?> getCurrentPosition() async {
     try {

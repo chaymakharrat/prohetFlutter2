@@ -1,20 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:projet_flutter/controller/ride_controller.dart';
+import 'package:projet_flutter/models/dto/ride_with_driver_dto.dart';
+import 'package:projet_flutter/state/app_state.dart';
 import 'package:provider/provider.dart';
-import '../../state/app_state.dart';
 import '../../models/app_ride_models.dart';
-import '../../models/reservation.dart';
+import '../../controller/reservation_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class BookingPage extends StatelessWidget {
+class BookingPage extends StatefulWidget {
   static const String routeName = '/booking';
-
   const BookingPage({super.key});
+
+  @override
+  State<BookingPage> createState() => _BookingPageState();
+}
+
+class _BookingPageState extends State<BookingPage> {
+  final ReservationController reservationController = ReservationController();
+  List<Reservation> reservations = [];
+  bool isLoading = true;
+  Map<String, RideDTO> _ridesMap = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReservations();
+  }
+
+  Future<void> _loadReservations() async {
+    final appState = context.read<AppState>();
+    final userId = appState.currentUser!.id;
+
+    // Récupérer les réservations actives
+    final activeReservations = await reservationController
+        .getActiveReservationsForUser(userId);
+
+    // Créer un controller Ride
+    final rideController = RideController();
+
+    // Charger tous les rides associés aux réservations
+    final List<Future<RideDTO>> rideFutures = activeReservations
+        .map((res) => rideController.getRideById(res.rideId))
+        .toList();
+    final rides = await Future.wait(rideFutures);
+
+    setState(() {
+      reservations = activeReservations;
+      _ridesMap = {
+        for (int i = 0; i < rides.length; i++) reservations[i].id: rides[i],
+      };
+      isLoading = false;
+    });
+  }
 
   Widget _driverInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Color(0xFF1565C0), size: 22),
+        Icon(icon, color: const Color(0xFF1565C0), size: 22),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -28,16 +71,6 @@ class BookingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final showUserReservations =
-        args != null && args['showUserReservations'] == true;
-
-    final appState = context.watch<AppState>();
-    final reservations = showUserReservations
-        ? appState.upcomingReservations
-        : <Reservation>[];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
       appBar: AppBar(
@@ -54,27 +87,21 @@ class BookingPage extends StatelessWidget {
           ),
         ),
       ),
-
-      // =============================
-      //          AUCUN RÉSULTAT
-      // =============================
-      body: reservations.isEmpty
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : reservations.isEmpty
           ? const Center(
               child: Text(
-                "Aucune réservation future",
+                "Aucune réservation active",
                 style: TextStyle(fontSize: 17, color: Colors.black54),
               ),
             )
-          // =============================
-          //            LISTE
-          // =============================
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: reservations.length,
               itemBuilder: (context, index) {
                 final res = reservations[index];
-                final ride = res.ride;
-
+                final ride = _ridesMap[res.id]!;
                 return Container(
                   margin: const EdgeInsets.only(bottom: 18),
                   decoration: BoxDecoration(
@@ -93,9 +120,8 @@ class BookingPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // TITRE TRAJET
                         Text(
-                          "${ride.origin.label} → ${ride.destination.label}",
+                          "${ride.ride.origin.label} → ${ride.ride.destination.label}",
                           style: const TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.bold,
@@ -103,8 +129,6 @@ class BookingPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 12),
-
-                        // DATE
                         Row(
                           children: [
                             const Icon(
@@ -113,7 +137,7 @@ class BookingPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              "Départ : ${DateFormat('dd/MM/yyyy HH:mm').format(ride.departureTime)}",
+                              "Départ : ${DateFormat('dd/MM/yyyy HH:mm').format(ride.ride.departureTime)}",
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.black54,
@@ -122,8 +146,6 @@ class BookingPage extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 8),
-
-                        // PLACES
                         Row(
                           children: [
                             const Icon(Icons.event_seat, color: Colors.teal),
@@ -138,26 +160,18 @@ class BookingPage extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 8),
-
-                        // PRIX
                         Text(
-                          "Prix total : ${(res.seatsReserved * ride.pricePerSeat).toStringAsFixed(2)} DT",
+                          "Prix total : ${(res.seatsReserved * ride.ride.pricePerSeat).toStringAsFixed(2)} DT",
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
                         ),
-
                         const SizedBox(height: 16),
-
-                        // =============================
-                        //      BOUTONS D'ACTION
-                        // =============================
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Bouton voir conducteur
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 elevation: 0,
@@ -231,8 +245,6 @@ class BookingPage extends StatelessWidget {
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),
-
-                            // Bouton annuler
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 elevation: 0,
@@ -246,17 +258,24 @@ class BookingPage extends StatelessWidget {
                                 ),
                               ),
                               onPressed: () async {
-                                final app = context.read<AppState>();
-
                                 final Uri whatsappUri = Uri.parse(
-                                  "https://wa.me/${ride.driver.phone}?text=${Uri.encodeComponent('Bonjour ${ride.driver.name}, je souhaite annuler ma réservation pour le trajet ${ride.origin.label} → ${ride.destination.label} du ${DateFormat('dd/MM/yyyy HH:mm').format(ride.departureTime)}.')}",
+                                  "https://wa.me/${ride.driver.phone}?text=${Uri.encodeComponent('Bonjour ${ride.driver.name}, je souhaite annuler ma réservation pour le trajet ${ride.ride.origin.label} → ${ride.ride.destination.label} du ${DateFormat('dd/MM/yyyy HH:mm').format(ride.ride.departureTime)}.')}",
                                 );
-
                                 if (await canLaunchUrl(whatsappUri)) {
                                   await launchUrl(whatsappUri);
                                 }
 
-                                app.cancelReservation(res.id);
+                                // Appel Firestore pour annuler
+                                await reservationController.cancelReservation(
+                                  ride.ride.id,
+                                  res.id,
+                                  res.seatsReserved,
+                                );
+
+                                // Mise à jour locale
+                                setState(() {
+                                  reservations.removeAt(index);
+                                });
 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(

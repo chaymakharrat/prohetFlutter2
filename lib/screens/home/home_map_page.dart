@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as ll;
+import 'package:projet_flutter/controller/routing_controller.dart';
 import 'package:projet_flutter/screens/profile/profile_page.dart';
 import 'package:provider/provider.dart';
 import 'package:string_similarity/string_similarity.dart';
 import '../../models/app_ride_models.dart';
 import '../../controller/location_controller.dart';
-import '../../services/routing_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../state/app_state.dart';
@@ -23,16 +23,14 @@ class HomeMapPage extends StatefulWidget {
 }
 
 class _HomeMapPageState extends State<HomeMapPage> {
-  final LocationService _locationService = LocationService();
-  final RoutingService _routingService = RoutingService();
-  List<String> _regionSuggestions = [];
+  final LocationController _locationController = LocationController();
+  final RoutingController _routingController = RoutingController();
   MapController? _mapController;
   List<ll.LatLng> _polyline = [];
   List<Marker> _markers = [];
   bool _isSearching = false;
-
-  final TextEditingController _searchController =
-      TextEditingController(); // 🔹 AJOUT
+  final TextEditingController _searchController = TextEditingController();
+  List<String> _regionSuggestions = [];
 
   static const double _tunisiaMinLat = 30.2;
   static const double _tunisiaMaxLat = 37.5;
@@ -43,131 +41,6 @@ class _HomeMapPageState extends State<HomeMapPage> {
     (30.2 + 37.5) / 2,
     (7.5 + 11.6) / 2,
   );
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.showMap) _mapController = MapController();
-    _loadMyLocation();
-  }
-
-  Future<void> _loadMyLocation() async {
-    final pos = await _locationService.getCurrentPosition();
-    if (!mounted) return;
-
-    if (pos != null) {
-      if (!_isWithinTunisiaBounds(pos.latitude, pos.longitude)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Votre position actuelle n\'est pas en Tunisie. La carte est centrée sur la Tunisie.',
-            ),
-            backgroundColor: Color.fromARGB(255, 148, 117, 70),
-          ),
-        );
-        _mapController?.move(_tunisiaCenter, 6);
-        return;
-      }
-
-      final app = context.read<AppState>();
-      app.origin = LocationPoint(
-        latitude: pos.latitude,
-        longitude: pos.longitude,
-        label: 'Ma position',
-      );
-
-      _moveCamera(pos);
-      _updateMarkers();
-    }
-  }
-
-  void _moveCamera(Position pos) {
-    _mapController?.move(ll.LatLng(pos.latitude, pos.longitude), 10);
-  }
-
-  bool _isWithinTunisiaBounds(double lat, double lng) {
-    return lat >= _tunisiaMinLat &&
-        lat <= _tunisiaMaxLat &&
-        lng >= _tunisiaMinLng &&
-        lng <= _tunisiaMaxLng;
-  }
-
-  void _onMapTapped(ll.LatLng latLng) async {
-    final app = context.read<AppState>();
-    if (app.origin == null) return;
-
-    if (!_isWithinTunisiaBounds(latLng.latitude, latLng.longitude)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner une destination en Tunisie'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    app.destination = LocationPoint(
-      latitude: latLng.latitude,
-      longitude: latLng.longitude,
-      label: 'Destination',
-    );
-    await _drawRoute();
-  }
-
-  Future<void> _drawRoute() async {
-    final app = context.read<AppState>();
-    final o = app.origin;
-    final d = app.destination;
-    if (o == null || d == null) return;
-
-    final route = await _routingService.fetchRoute(
-      fromLat: o.latitude,
-      fromLng: o.longitude,
-      toLat: d.latitude,
-      toLng: d.longitude,
-    );
-
-    if (!mounted || route == null) return;
-
-    setState(() {
-      _polyline = route.polyline
-          .map((p) => ll.LatLng(p.latitude, p.longitude))
-          .toList();
-    });
-    _updateMarkers();
-  }
-
-  void _updateMarkers() {
-    final app = context.read<AppState>();
-    final markers = <Marker>[];
-
-    if (app.origin != null) {
-      markers.add(
-        Marker(
-          point: ll.LatLng(app.origin!.latitude, app.origin!.longitude),
-          width: 50,
-          height: 50,
-          child: const Icon(Icons.my_location, color: Colors.blue, size: 36),
-        ),
-      );
-    }
-
-    if (app.destination != null) {
-      markers.add(
-        Marker(
-          point: ll.LatLng(
-            app.destination!.latitude,
-            app.destination!.longitude,
-          ),
-          width: 50,
-          height: 50,
-          child: const Icon(Icons.place, color: Colors.red, size: 36),
-        ),
-      );
-    }
-
-    setState(() => _markers = markers);
-  }
 
   final Map<String, ll.LatLng> tunisianRegions = {
     "Tunis": ll.LatLng(36.8065, 10.1815),
@@ -200,23 +73,95 @@ class _HomeMapPageState extends State<HomeMapPage> {
     "Hammamet": ll.LatLng(36.4011, 10.6223),
   };
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.showMap) _mapController = MapController();
+    _loadMyLocation();
+  }
+
+  // ===================== LOCATION =====================
+  Future<void> _loadMyLocation() async {
+    final pos = await _locationController.getCurrentPosition();
+    if (!mounted) return;
+
+    if (pos == null) return;
+
+    if (!_isWithinTunisiaBounds(pos.latitude, pos.longitude)) {
+      _showSnack(
+        'Votre position n\'est pas en Tunisie. Carte centrée sur la Tunisie.',
+        Colors.brown,
+      );
+      _mapController?.move(_tunisiaCenter, 6);
+      return;
+    }
+
+    final app = context.read<AppState>();
+    app.origin = LocationPoint(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+      label: 'Ma position',
+    );
+    _moveCamera(pos);
+    _updateMarkers();
+  }
+
+  bool _isWithinTunisiaBounds(double lat, double lng) =>
+      lat >= _tunisiaMinLat &&
+      lat <= _tunisiaMaxLat &&
+      lng >= _tunisiaMinLng &&
+      lng <= _tunisiaMaxLng;
+
+  void _moveCamera(Position pos) =>
+      _mapController?.move(ll.LatLng(pos.latitude, pos.longitude), 10);
+
+  // ===================== MARKERS =====================
+  void _updateMarkers() {
+    final app = context.read<AppState>();
+    final markers = <Marker>[];
+
+    if (app.origin != null) {
+      markers.add(
+        Marker(
+          point: ll.LatLng(app.origin!.latitude, app.origin!.longitude),
+          width: 50,
+          height: 50,
+          child: const Icon(Icons.my_location, color: Colors.blue, size: 36),
+        ),
+      );
+    }
+
+    if (app.destination != null) {
+      markers.add(
+        Marker(
+          point: ll.LatLng(
+            app.destination!.latitude,
+            app.destination!.longitude,
+          ),
+          width: 50,
+          height: 50,
+          child: const Icon(Icons.place, color: Colors.red, size: 36),
+        ),
+      );
+    }
+
+    setState(() => _markers = markers);
+  }
+
+  // ===================== SEARCH =====================
   List<String> _getFuzzySuggestions(String query, {int maxResults = 5}) {
     final q = query.toLowerCase();
     final scores = <String, double>{};
-
     for (final region in tunisianRegions.keys) {
       final regionLower = region.toLowerCase();
       if (q.length <= 3 && regionLower.startsWith(q)) {
         scores[region] = 1.0;
       } else {
-        final similarity = StringSimilarity.compareTwoStrings(regionLower, q);
-        scores[region] = similarity;
+        scores[region] = StringSimilarity.compareTwoStrings(regionLower, q);
       }
     }
-
     final sorted = scores.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-
     return sorted
         .where((e) => e.value > 0.1)
         .take(maxResults)
@@ -226,16 +171,11 @@ class _HomeMapPageState extends State<HomeMapPage> {
 
   String? _findClosestRegion(String query) {
     final q = query.toLowerCase();
-    for (final name in tunisianRegions.keys) {
+    for (final name in tunisianRegions.keys)
       if (name.toLowerCase() == q) return name;
-    }
-
-    for (final name in tunisianRegions.keys) {
-      if (name.toLowerCase().startsWith(q) || name.toLowerCase().contains(q)) {
+    for (final name in tunisianRegions.keys)
+      if (name.toLowerCase().startsWith(q) || name.toLowerCase().contains(q))
         return name;
-      }
-    }
-
     return null;
   }
 
@@ -251,12 +191,10 @@ class _HomeMapPageState extends State<HomeMapPage> {
     if (query.isEmpty) return;
 
     final app = context.read<AppState>();
-
     try {
       final regionMatch =
           _findClosestRegion(query) ??
           _getFuzzySuggestions(query, maxResults: 1).firstOrNull;
-
       if (regionMatch != null) {
         final coords = tunisianRegions[regionMatch]!;
         app.destination = LocationPoint(
@@ -264,29 +202,10 @@ class _HomeMapPageState extends State<HomeMapPage> {
           longitude: coords.longitude,
           label: regionMatch,
         );
-
-        if (app.origin != null) {
-          final route = await _routingService.fetchRoute(
-            fromLat: app.origin!.latitude,
-            fromLng: app.origin!.longitude,
-            toLat: coords.latitude,
-            toLng: coords.longitude,
-          );
-
-          if (route != null) {
-            setState(() {
-              _polyline = route.polyline
-                  .map((p) => ll.LatLng(p.latitude, p.longitude))
-                  .toList();
-            });
-          }
-        }
-
+        if (app.origin != null) await _drawRoute();
         _mapController?.move(coords, 10);
         _updateMarkers();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Trajet vers "$regionMatch" dessiné ✅')),
-        );
+        _showSnack('Trajet vers "$regionMatch" dessiné ✅', Colors.green);
         return;
       }
 
@@ -300,50 +219,71 @@ class _HomeMapPageState extends State<HomeMapPage> {
           final lat = double.parse(data[0]['lat']);
           final lon = double.parse(data[0]['lon']);
           final name = data[0]['display_name'] ?? query;
-
           app.destination = LocationPoint(
             latitude: lat,
             longitude: lon,
             label: name,
           );
-
-          if (app.origin != null) {
-            final route = await _routingService.fetchRoute(
-              fromLat: app.origin!.latitude,
-              fromLng: app.origin!.longitude,
-              toLat: lat,
-              toLng: lon,
-            );
-            if (route != null) {
-              setState(() {
-                _polyline = route.polyline
-                    .map((p) => ll.LatLng(p.latitude, p.longitude))
-                    .toList();
-              });
-            }
-          }
-
+          if (app.origin != null) await _drawRoute();
           _mapController?.move(ll.LatLng(lat, lon), 10);
           _updateMarkers();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Trajet vers "$query" dessiné ✅')),
-          );
+          _showSnack('Trajet vers "$query" dessiné ✅', Colors.green);
           return;
         }
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Adresse introuvable. Vérifiez l’orthographe.'),
-        ),
-      );
+      _showSnack('Adresse introuvable. Vérifiez l’orthographe.', Colors.red);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur réseau : $e')));
+      _showSnack('Erreur réseau : $e', Colors.red);
     }
   }
 
+  Future<void> _drawRoute() async {
+    final app = context.read<AppState>();
+    final o = app.origin;
+    final d = app.destination;
+    if (o == null || d == null) return;
+
+    final route = await _routingController.fetchRoute(
+      fromLat: o.latitude,
+      fromLng: o.longitude,
+      toLat: d.latitude,
+      toLng: d.longitude,
+    );
+    if (!mounted || route == null) return;
+
+    setState(() {
+      _polyline = route.polyline
+          .map((p) => ll.LatLng(p.latitude, p.longitude))
+          .toList();
+    });
+    _updateMarkers();
+  }
+
+  void _onMapTapped(ll.LatLng latLng) async {
+    final app = context.read<AppState>();
+    if (app.origin == null) return;
+    if (!_isWithinTunisiaBounds(latLng.latitude, latLng.longitude)) {
+      _showSnack(
+        'Veuillez sélectionner une destination en Tunisie',
+        Colors.red,
+      );
+      return;
+    }
+    app.destination = LocationPoint(
+      latitude: latLng.latitude,
+      longitude: latLng.longitude,
+      label: 'Destination',
+    );
+    await _drawRoute();
+  }
+
+  void _showSnack(String message, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  }
+
+  // ===================== BUILD =====================
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
@@ -360,49 +300,11 @@ class _HomeMapPageState extends State<HomeMapPage> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
-        elevation: 4, // élévation pour ombre
-        shadowColor: Colors.black.withOpacity(0.2), // couleur de l'ombre
+        elevation: 4,
+        shadowColor: Colors.black.withOpacity(0.2),
         iconTheme: const IconThemeData(color: Colors.white),
-
-        // Action: avatar avec indicateur de statut
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(50),
-              onTap: () => Navigator.pushNamed(context, ProfilePage.routeName),
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      app.currentUser?.name[0].toUpperCase() ?? 'U',
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.green, // statut en ligne
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        actions: [UserAvatarAction(app)],
       ),
-
       body: Stack(
         children: [
           widget.showMap
@@ -438,147 +340,204 @@ class _HomeMapPageState extends State<HomeMapPage> {
                   ],
                 )
               : const Center(child: Text('Carte désactivée')),
-
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween),
-                  const SizedBox(height: 10),
-                  Column(
-                    children: [
-                      TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Rechercher une destination...',
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: _isSearching ? Colors.green : Colors.grey,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        onChanged: (text) {
-                          setState(() {
-                            _regionSuggestions = _getFuzzySuggestions(text);
-                          });
-                        },
-                        onSubmitted: (_) => _onSearchPressed(),
-                      ),
-                      ..._regionSuggestions.map(
-                        (suggestion) => ListTile(
-                          title: Text(suggestion),
-                          onTap: () {
-                            _searchController.text = suggestion;
-                            setState(() => _regionSuggestions = []);
-                            _onSearchPressed();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              child: MapSearchBar(
+                controller: _searchController,
+                isSearching: _isSearching,
+                suggestions: _regionSuggestions,
+                onChanged: (text) => setState(
+                  () => _regionSuggestions = _getFuzzySuggestions(text),
+                ),
+                onSubmitted: (_) => _onSearchPressed(),
+                onSuggestionTap: (suggestion) {
+                  _searchController.text = suggestion;
+                  setState(() => _regionSuggestions = []);
+                  _onSearchPressed();
+                },
               ),
             ),
           ),
-
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade400,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: Colors.blue.shade700,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 5,
-                          ),
-                          onPressed: () => Navigator.pushNamed(
-                            context,
-                            RideListPage.routeName,
-                          ),
-                          icon: const Icon(Icons.directions_car),
-                          label: const Text(
-                            'Choisir un trajet',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: Colors.green.shade600,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 5,
-                          ),
-                          // onPressed: () {
-                          //   Navigator.pushNamed(context, '/'); // juste ça
-                          // },
-                          onPressed: () => Navigator.pushNamed(
-                            context,
-                            PublishRidePage.routeName,
-
-                            //ProfilePage.routeName,
-                          ),
-                          icon: const Icon(Icons.add),
-                          label: const Text(
-                            'Publier un trajet',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            child: BottomActionButtons(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ===================== WIDGETS =====================
+class MapSearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isSearching;
+  final List<String> suggestions;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
+  final ValueChanged<String> onSuggestionTap;
+
+  const MapSearchBar({
+    super.key,
+    required this.controller,
+    required this.isSearching,
+    required this.suggestions,
+    required this.onChanged,
+    required this.onSubmitted,
+    required this.onSuggestionTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'Rechercher une destination...',
+            prefixIcon: Icon(
+              Icons.search,
+              color: isSearching ? Colors.green : Colors.grey,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+        ),
+        ...suggestions.map(
+          (s) => ListTile(title: Text(s), onTap: () => onSuggestionTap(s)),
+        ),
+      ],
+    );
+  }
+}
+
+class BottomActionButtons extends StatelessWidget {
+  const BottomActionButtons({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.blue.shade700,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 5,
+                  ),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, RideListPage.routeName),
+                  icon: const Icon(Icons.directions_car),
+                  label: const Text(
+                    'Choisir un trajet',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.green.shade600,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 5,
+                  ),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, PublishRidePage.routeName),
+                  icon: const Icon(Icons.add),
+                  label: const Text(
+                    'Publier un trajet',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class UserAvatarAction extends StatelessWidget {
+  final app;
+  const UserAvatarAction(this.app, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(50),
+        onTap: () => Navigator.pushNamed(context, ProfilePage.routeName),
+        child: Stack(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                app.currentUser?.name[0].toUpperCase() ?? 'U',
+                style: const TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

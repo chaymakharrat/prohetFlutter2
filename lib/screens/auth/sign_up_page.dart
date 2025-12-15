@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 // Cloud Firestore (stockage des infos utilisateur)
 import 'package:projet_flutter/models/user_profile.dart';
-import 'package:projet_flutter/controller/User_controller.dart';
+import 'package:projet_flutter/controller/user_controller.dart';
 
 // ============================================================
 // SIGN UP PAGE (INSCRIPTION)
@@ -57,7 +57,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
       // 2. Récupération de l'UID (identifiant unique Firebase)
       String uid = userCredential.user!.uid;
-      final userService = UserService();
+      final userService = UserController();
 
       // Créer le profil utilisateur
       final profile = UserProfile(
