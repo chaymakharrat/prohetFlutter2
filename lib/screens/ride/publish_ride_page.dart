@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:projet_flutter/controller/ride_controller.dart';
-//import 'package:projet_flutter/models/rideFire.dart';
 import 'package:provider/provider.dart';
 import '../../models/app_ride_models.dart';
 import '../../state/app_state.dart';
-import 'package:url_launcher/url_launcher.dart';
+//import 'package:url_launcher/url_launcher.dart';
 
 class PublishRidePage extends StatefulWidget {
   static const String routeName = '/publish';
@@ -22,6 +21,8 @@ class _PublishRidePageState extends State<PublishRidePage> {
   final _seatsController = TextEditingController();
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
+  final _distanceController = TextEditingController();
+  final _durationController = TextEditingController();
   DateTime _dateTime = DateTime.now().add(const Duration(hours: 1));
 
   @override
@@ -37,11 +38,14 @@ class _PublishRidePageState extends State<PublishRidePage> {
       _seatsController.text = ride.availableSeats.toString();
       _dateTime = ride.departureTime;
     } else {
-      if (app.origin != null) _fromController.text = app.origin!.label!;
-      if (app.destination != null) _toController.text = app.destination!.label!;
+      if (app.origin != null) _fromController.text = app.origin!.label;
+      if (app.destination != null) _toController.text = app.destination!.label;
       _priceController.text = '10';
       _seatsController.text = '3';
     }
+
+    _distanceController.text = app.distanceKm?.toStringAsFixed(1) ?? '';
+    _durationController.text = app.formattedDuration;
   }
 
   @override
@@ -59,9 +63,22 @@ class _PublishRidePageState extends State<PublishRidePage> {
       ),
       body: Column(
         children: [
-          // --- Barre bleue : départ et destination ---
+          // ----------------- Barre bleue : départ et destination -----------------
           Container(
-            color: Colors.blue.shade700,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade700,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
@@ -72,7 +89,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
                   color: Colors.white,
                   isReadOnly: true,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 _buildLocationField(
                   controller: _toController,
                   hint: 'Destination',
@@ -84,16 +101,17 @@ class _PublishRidePageState extends State<PublishRidePage> {
             ),
           ),
 
+          // ----------------- Formulaire -----------------
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               children: [
-                const SizedBox(height: 24),
                 Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // --- Prix et Places ---
                       Row(
                         children: [
                           Expanded(
@@ -116,7 +134,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
                                 if (v == null || v.isEmpty) return 'Requis';
                                 final val = double.tryParse(v);
                                 if (val == null || val <= 0)
-                                  return 'Entrer un prix valide';
+                                  return "Entrer un prix valide";
                                 return null;
                               },
                             ),
@@ -146,12 +164,52 @@ class _PublishRidePageState extends State<PublishRidePage> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+
+                      // --- Distance et Durée (readonly) ---
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _distanceController,
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                labelText: 'Distance (km)',
+                                prefixIcon: const Icon(Icons.straighten),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey.shade200,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _durationController,
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                labelText: 'Durée (min)',
+                                prefixIcon: const Icon(Icons.timer),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey.shade200,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 20),
-                      // Date et heure
+
+                      // --- Date et Heure ---
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.grey.shade300),
+                          color: Colors.grey.shade100,
                         ),
                         child: ListTile(
                           leading: const Icon(
@@ -196,7 +254,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
             ),
           ),
 
-          // --- Bouton Publier / Modifier ---
+          // ----------------- Bouton Publier / Modifier -----------------
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
@@ -208,7 +266,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  elevation: 3,
+                  elevation: 5,
                 ),
                 icon: Icon(isEdit ? Icons.edit : Icons.publish, size: 24),
                 label: Text(
@@ -220,6 +278,16 @@ class _PublishRidePageState extends State<PublishRidePage> {
                 ),
                 onPressed: () async {
                   if (!_formKey.currentState!.validate()) return;
+                  if (app.destination == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Veuillez sélectionner une destination !',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
 
                   final ride = Ride(
                     id: isEdit
@@ -233,58 +301,33 @@ class _PublishRidePageState extends State<PublishRidePage> {
                     availableSeats: int.parse(_seatsController.text),
                     pricePerSeat: double.parse(_priceController.text),
                     reserverSeats: 0,
+                    distanceKm: app.distanceKm?.roundToDouble() ?? 0,
+                    durationMin: app.durationMin?.roundToDouble() ?? 0.0,
                   );
 
-                  if (isEdit) {
-                    final rideController = RideController();
-                    try {
+                  final rideController = RideController();
+                  try {
+                    if (isEdit) {
                       await rideController.updateRide(ride);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Ride modifier avec succès !'),
+                          content: Text('Ride modifié avec succès !'),
                         ),
                       );
-                      Navigator.pop(context); // Retour à la page précédente
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Erreur lors de modification : $e'),
-                        ),
-                      );
-                    }
-                    // // Envoi WhatsApp aux passagers
-                    // final reservations = app.getReservationsForRide(ride.id);
-                    // for (var res in reservations) {
-                    //   final Uri whatsappUri = Uri.parse(
-                    //     "https://wa.me/21652511554?text=${Uri.encodeComponent('Bonjour ${res.user.name}, le trajet a été modifié.')}",
-                    //   );
-                    //   if (await canLaunchUrl(whatsappUri))
-                    //     await launchUrl(whatsappUri);
-                    // }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Modification envoyée aux passagers via WhatsApp',
-                        ),
-                      ),
-                    );
-                  } else {
-                    final rideController = RideController();
-                    try {
+                    } else {
                       await rideController.addRide(ride);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Ride ajouté avec succès !'),
                         ),
                       );
-                      Navigator.pop(context); // Retour à la page précédente
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Erreur lors de l’ajout : $e')),
-                      );
                     }
+                    Navigator.pushNamed(context, '/userRides');
+                  } catch (e) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Erreur : $e')));
                   }
-                  Navigator.pushReplacementNamed(context, '/userRides');
                 },
               ),
             ),
@@ -304,7 +347,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
     return TextField(
       controller: controller,
       readOnly: isReadOnly,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: color),
         hintText: hint,

@@ -97,11 +97,22 @@ class _HomeMapPageState extends State<HomeMapPage> {
     }
 
     final app = context.read<AppState>();
+    // app.origin = LocationPoint(
+    //   latitude: pos.latitude,
+    //   longitude: pos.longitude,
+    //   label: 'Ma position',
+    // );
+    final placeName = await _getPlaceNameFromLatLng(
+      pos.latitude,
+      pos.longitude,
+    );
+    print('Ma position actuelle : $placeName');
     app.origin = LocationPoint(
       latitude: pos.latitude,
       longitude: pos.longitude,
-      label: 'Ma position',
+      label: placeName, // ex: "Sfax"
     );
+
     _moveCamera(pos);
     _updateMarkers();
   }
@@ -256,12 +267,106 @@ class _HomeMapPageState extends State<HomeMapPage> {
           .map((p) => ll.LatLng(p.latitude, p.longitude))
           .toList();
     });
+    // ✅ ICI LE LIEN IMPORTANT
+    app.distanceKm = route.distanceKm;
+    app.durationMin = route.durationMin;
     _updateMarkers();
   }
 
+  Future<String> _getPlaceNameFromLatLng(double lat, double lng) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?format=json'
+        '&lat=$lat'
+        '&lon=$lng'
+        '&zoom=12'
+        '&addressdetails=1'
+        '&accept-language=fr',
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'User-Agent': 'com.example.projet_flutter (contact@email.com)',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final address = data['address'];
+
+        final state = address['state']; // région
+        final county =
+            address['county'] ?? address['municipality']; // mo3tamdia
+
+        if (state != null && county != null) {
+          return "$state $county"; // ex: "Mahdia Jam"
+        }
+
+        return state ?? county ?? 'Lieu sélectionné';
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+
+    return 'Lieu sélectionné';
+  }
+
+  // Future<String> _getPlaceNameFromLatLng(double lat, double lng) async {
+  //   try {
+  //     final uri = Uri.parse(
+  //       'https://nominatim.openstreetmap.org/reverse'
+  //       '?format=json'
+  //       '&lat=$lat'
+  //       '&lon=$lng'
+  //       '&zoom=14'
+  //       '&addressdetails=1'
+  //       '&accept-language=fr',
+  //     );
+
+  //     final response = await http.get(
+  //       uri,
+  //       headers: {
+  //         'User-Agent': 'com.example.projet_flutter (contact@email.com)',
+  //       },
+  //     );
+
+  //     if (response.statusCode == 200) {
+  //       final data = jsonDecode(response.body);
+  //       final address = data['address'];
+  //       final state = address['state'];
+  //       final county = address['county'];
+  //       final city = address['city'];
+
+  //       // if (state != null && county != null) {
+  //       //   return "$state $county";
+  //       // }
+
+  //       // return city ?? state ?? 'Lieu sélectionné';
+
+  //       // Ordre de priorité adapté à la Tunisie
+  //       // return address['state'] ??
+  //       //     address['city'] ??
+  //       //     address['county'] ??
+  //       //     'Lieu sélectionné';
+  //       return " aaa ${address['county']} bbb ${address['state']} ccc ${address['city']}";
+  //     }
+  //   } catch (e) {
+  //     debugPrint(e.toString());
+  //   }
+
+  //   return 'Lieu sélectionné';
+  // }
+
   void _onMapTapped(ll.LatLng latLng) async {
     final app = context.read<AppState>();
-    if (app.origin == null) return;
+
+    if (app.origin == null) {
+      _showSnack('Position de départ inconnue', Colors.orange);
+      return;
+    }
+
     if (!_isWithinTunisiaBounds(latLng.latitude, latLng.longitude)) {
       _showSnack(
         'Veuillez sélectionner une destination en Tunisie',
@@ -269,12 +374,22 @@ class _HomeMapPageState extends State<HomeMapPage> {
       );
       return;
     }
+
+    final placeName = await _getPlaceNameFromLatLng(
+      latLng.latitude,
+      latLng.longitude,
+    );
+
     app.destination = LocationPoint(
       latitude: latLng.latitude,
       longitude: latLng.longitude,
-      label: 'Destination',
+      label: placeName,
     );
+
     await _drawRoute();
+    _updateMarkers();
+
+    _showSnack('Destination : $placeName', Colors.green);
   }
 
   void _showSnack(String message, Color color) {

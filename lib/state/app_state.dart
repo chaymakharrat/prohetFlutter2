@@ -20,6 +20,20 @@ class AppState extends ChangeNotifier {
   // ========================= TRAJET EN COURS =========================
   LocationPoint? origin; // Point de départ sélectionné
   LocationPoint? destination; // Point d’arrivée sélectionné
+  double? distanceKm;
+  double? durationMin;
+  String get formattedDuration {
+    if (durationMin == null) return '';
+    final totalMinutes = durationMin!.round();
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    if (hours > 0) {
+      return '${hours}h ${minutes}min';
+    } else {
+      return '${minutes}min';
+    }
+  }
+
   String? currentUserId; // UID de l’utilisateur (facultatif ici)
   // ========================= MÉTHODES UTILISATEUR =========================
 
