@@ -190,7 +190,7 @@ class _PublishRidePageState extends State<PublishRidePage> {
                               controller: _durationController,
                               readOnly: true,
                               decoration: InputDecoration(
-                                labelText: 'Durée (min)',
+                                labelText: 'Durée',
                                 prefixIcon: const Icon(Icons.timer),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),

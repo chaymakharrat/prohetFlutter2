@@ -50,6 +50,4 @@ class AppState extends ChangeNotifier {
     isLoggedIn = false;
     notifyListeners();
   }
-
-  /////////////////////
 }

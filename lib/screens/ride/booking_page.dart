@@ -258,13 +258,6 @@ class _BookingPageState extends State<BookingPage> {
                                 ),
                               ),
                               onPressed: () async {
-                                final Uri whatsappUri = Uri.parse(
-                                  "https://wa.me/${ride.driver.phone}?text=${Uri.encodeComponent('Bonjour ${ride.driver.name}, je souhaite annuler ma réservation pour le trajet ${ride.ride.origin.label} → ${ride.ride.destination.label} du ${DateFormat('dd/MM/yyyy HH:mm').format(ride.ride.departureTime)}.')}",
-                                );
-                                if (await canLaunchUrl(whatsappUri)) {
-                                  await launchUrl(whatsappUri);
-                                }
-
                                 // Appel Firestore pour annuler
                                 await reservationController.cancelReservation(
                                   ride.ride.id,

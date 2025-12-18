@@ -97,11 +97,6 @@ class _HomeMapPageState extends State<HomeMapPage> {
     }
 
     final app = context.read<AppState>();
-    // app.origin = LocationPoint(
-    //   latitude: pos.latitude,
-    //   longitude: pos.longitude,
-    //   label: 'Ma position',
-    // );
     final placeName = await _getPlaceNameFromLatLng(
       pos.latitude,
       pos.longitude,
@@ -313,52 +308,6 @@ class _HomeMapPageState extends State<HomeMapPage> {
     return 'Lieu sélectionné';
   }
 
-  // Future<String> _getPlaceNameFromLatLng(double lat, double lng) async {
-  //   try {
-  //     final uri = Uri.parse(
-  //       'https://nominatim.openstreetmap.org/reverse'
-  //       '?format=json'
-  //       '&lat=$lat'
-  //       '&lon=$lng'
-  //       '&zoom=14'
-  //       '&addressdetails=1'
-  //       '&accept-language=fr',
-  //     );
-
-  //     final response = await http.get(
-  //       uri,
-  //       headers: {
-  //         'User-Agent': 'com.example.projet_flutter (contact@email.com)',
-  //       },
-  //     );
-
-  //     if (response.statusCode == 200) {
-  //       final data = jsonDecode(response.body);
-  //       final address = data['address'];
-  //       final state = address['state'];
-  //       final county = address['county'];
-  //       final city = address['city'];
-
-  //       // if (state != null && county != null) {
-  //       //   return "$state $county";
-  //       // }
-
-  //       // return city ?? state ?? 'Lieu sélectionné';
-
-  //       // Ordre de priorité adapté à la Tunisie
-  //       // return address['state'] ??
-  //       //     address['city'] ??
-  //       //     address['county'] ??
-  //       //     'Lieu sélectionné';
-  //       return " aaa ${address['county']} bbb ${address['state']} ccc ${address['city']}";
-  //     }
-  //   } catch (e) {
-  //     debugPrint(e.toString());
-  //   }
-
-  //   return 'Lieu sélectionné';
-  // }
-
   void _onMapTapped(ll.LatLng latLng) async {
     final app = context.read<AppState>();
 
@@ -418,6 +367,10 @@ class _HomeMapPageState extends State<HomeMapPage> {
         elevation: 4,
         shadowColor: Colors.black.withOpacity(0.2),
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.notifications),
+          onPressed: () => Navigator.pushNamed(context, '/notifications'),
+        ),
         actions: [UserAvatarAction(app)],
       ),
       body: Stack(

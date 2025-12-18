@@ -1,11 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:projet_flutter/controller/notification_controller.dart';
 import 'package:projet_flutter/controller/user_controller.dart';
 import 'package:projet_flutter/models/dto/reservation_with_user.dart';
 import 'package:projet_flutter/models/dto/ride_with_driver_dto.dart';
-// import 'package:projet_flutter/models/location.dart';
-// import 'package:projet_flutter/models/reservationFire.dart';
-// import 'package:projet_flutter/models/rideFire.dart';
-// import 'package:projet_flutter/models/user_profile.dart';
 import '../models/app_ride_models.dart';
 
 class RideController {
@@ -16,6 +13,8 @@ class RideController {
     'users',
   );
   UserController _userProfileController = UserController();
+  final NotificationController _notificationController =
+      NotificationController();
 
   // ➕ Ajouter un ride
   Future<void> addRide(Ride ride) async {
@@ -33,7 +32,7 @@ class RideController {
     });
   }
 
-  /// Mettre à jour un ride existant
+  /// Mettre à jour un ride existant(st7a9it el notification)
   Future<void> updateRide(Ride ride) async {
     try {
       final docRef = _ridesRef.doc(ride.id);
@@ -43,6 +42,20 @@ class RideController {
         throw Exception("Le trajet n'existe pas !");
       }
 
+      // Notifier les passagers
+      final reservations = await getReservationsForRide(ride.id);
+      for (var res in reservations) {
+        await _notificationController.sendNotification(
+          senderId: ride.driverId,
+          receiverId: res.userId,
+          rideId: ride.id,
+          title: "Trajet modifié",
+          body:
+              "Le trajet ${ride.origin.label} → ${ride.destination.label} a été modifié.",
+          type: "ride_modification",
+        );
+      }
+
       await docRef.update(ride.toMap());
     } catch (e) {
       print("Erreur updateRide: $e");
@@ -50,36 +63,31 @@ class RideController {
     }
   }
 
-  // suprimer les rides
+  // suprimer les rides(st7a9it el notification)
   Future<void> cancelRide(String rideId) async {
+    // Récupérer les infos du trajet pour la notif
+    final rideDTO = await getRideById(rideId);
+    final ride = rideDTO.ride;
+
+    // Notifier les passagers
+    final reservations = await getReservationsForRide(rideId);
+    for (var res in reservations) {
+      await _notificationController.sendNotification(
+        senderId: ride.driverId,
+        receiverId: res.userId,
+        rideId: ride.id,
+        title: "Trajet annulé",
+        body:
+            "Le trajet ${ride.origin.label} → ${ride.destination.label} a été annulé par le conducteur.",
+        type: "ride_cancellation",
+      );
+    }
+
     await _ridesRef.doc(rideId).update({
       'status': 'CANCELLED',
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
-
-  // 🔍 Récupérer un ride avec infos du driver qui sont active et ne passe pas le temps
-  // Future<RideDTO?> getActiveById(String id) async {
-  //   final doc = await _ridesRef.doc(id).get();
-  //   if (!doc.exists) return null;
-
-  //   final data = doc.data() as Map<String, dynamic>;
-
-  //   // ✅ Filtrage par status ACTIVE
-  //   if (data['status'] != 'active') {
-  //     return null;
-  //   }
-
-  //   final ride = Ride.fromMap(doc.id, data);
-
-  //   final driverDoc = await _usersRef.doc(ride.driverId).get();
-  //   final driver = UserProfile.fromMap(
-  //     driverDoc.id,
-  //     driverDoc.data() as Map<String, dynamic>,
-  //   );
-
-  //   return RideDTO(ride: ride, driver: driver);
-  // }
 
   // 👤 Rides d’un conducteur les rides active et ne passe pas le temps
   Future<List<RideDTO>> getUserRides(String userId) async {

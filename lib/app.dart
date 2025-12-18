@@ -14,6 +14,7 @@ import 'screens/ride/ride_details_page.dart';
 import 'screens/ride/ride_list_page.dart';
 import 'screens/ride/booking_page.dart';
 import 'screens/ride/user_rides_page.dart';
+import 'screens/notification/notifications_page.dart';
 
 import 'state/app_state.dart';
 
@@ -71,6 +72,7 @@ class RideShareApp extends StatelessWidget {
           BookingPage.routeName: (_) => const BookingPage(),
           UserRidesPage.routeName: (BuildContext context) =>
               const UserRidesPage(),
+          NotificationsPage.routeName: (_) => const NotificationsPage(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == RideDetailsPage.routeName) {

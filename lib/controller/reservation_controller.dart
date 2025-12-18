@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/app_ride_models.dart'; // ton modèle Reservation
+import 'package:projet_flutter/controller/notification_controller.dart';
 
 class ReservationController {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final NotificationController _notificationController =
+      NotificationController();
 
   // Ajouter une réservation à un ride
   Future<void> addReservation(String rideId, Reservation reservation) async {
@@ -38,7 +41,7 @@ class ReservationController {
         .toList();
   }
 
-  // Supprimer une réservation
+  // Supprimer une réservation (st7ait ajout notification)
   Future<void> cancelReservation(
     String rideId,
     String reservationId,
@@ -50,6 +53,33 @@ class ReservationController {
         .collection('reservations')
         .doc(reservationId);
 
+    // 1. Récupérer la résa pour avoir le userId
+    final resSnapshot = await resRef.get();
+    if (resSnapshot.exists) {
+      final data = resSnapshot.data() as Map<String, dynamic>;
+      final userId = data['userId'];
+
+      // 2. Récupérer le ride pour avoir le driverId
+      final rideSnapshot = await _db.collection('rides').doc(rideId).get();
+      if (rideSnapshot.exists) {
+        final rideData = rideSnapshot.data() as Map<String, dynamic>;
+        final driverId = rideData['driverId'];
+        final origin = rideData['origin']['label'] ?? '???';
+        final dest = rideData['destination']['label'] ?? '???';
+
+        // 3. Envoyer la notif au driver
+        await _notificationController.sendNotification(
+          senderId: userId,
+          receiverId: driverId,
+          rideId: rideId,
+          title: "Réservation annulée",
+          body:
+              "Un passager a annulé sa réservation pour le trajet $origin → $dest.",
+          type: "reservation_cancellation",
+        );
+      }
+    }
+
     await resRef.delete();
 
     final rideRef = _db.collection('rides').doc(rideId);
@@ -59,6 +89,8 @@ class ReservationController {
       transaction.update(rideRef, {'reserverSeats': currentReserved - seats});
     });
   }
+
+
   /// Récupère toutes les réservations actives d'un utilisateur dont le trajet n'est pas encore passé
   Future<List<Reservation>> getActiveReservationsForUser(String userId) async {
     try {
