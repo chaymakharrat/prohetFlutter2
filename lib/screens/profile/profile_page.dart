@@ -35,9 +35,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   _sectionTitle("Informations personnelles"),
                   _infoTile(
-                      icon: Icons.phone, title: "Téléphone", value: user.phone),
+                    icon: Icons.phone,
+                    title: "Téléphone",
+                    value: user.phone,
+                  ),
                   _infoTile(
-                      icon: Icons.email, title: "Email", value: user.email),
+                    icon: Icons.email,
+                    title: "Email",
+                    value: user.email,
+                  ),
                   const SizedBox(height: 20),
                   _sectionTitle("Vos activités"),
                   _actionTile(
@@ -146,8 +152,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // ----------------------------- INFO TILE -----------------------------
-  Widget _infoTile(
-      {required IconData icon, required String title, required String value}) {
+  Widget _infoTile({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -226,8 +235,9 @@ class _ProfilePageState extends State<ProfilePage> {
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           side: const BorderSide(color: Color(0xFF1976D2)),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         onPressed: () {
           Provider.of<AppState>(context, listen: false).logout();

@@ -4,6 +4,7 @@ import 'package:projet_flutter/models/dto/ride_with_reservation.dart';
 import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
 import 'publish_ride_page.dart';
+import '../chat/chat_details_page.dart';
 
 class UserRidesPage extends StatefulWidget {
   static const String routeName = '/userRides';
@@ -328,32 +329,147 @@ class _UserRidesPageState extends State<UserRidesPage> {
                                             ),
                                         itemBuilder: (context, index) {
                                           final passenger = reservations[index];
-                                          return ListTile(
-                                            leading: CircleAvatar(
-                                              backgroundColor: const Color(
-                                                0xFF1976D2,
-                                              ),
-                                              child: Text(
-                                                passenger.user.name[0]
-                                                    .toUpperCase(),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                ),
-                                              ),
+                                          return Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade50,
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              border: Border.all(
+                                                  color: Colors.grey.shade200),
                                             ),
-                                            title: Text(passenger.user.name),
-                                            subtitle: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                            child: Stack(
                                               children: [
-                                                Text(
-                                                  "Téléphone: ${passenger.user.phone}",
+                                                // Contenu principal
+                                                Column(
+                                                  children: [
+                                                    const SizedBox(height: 12),
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        CircleAvatar(
+                                                          radius: 20,
+                                                          backgroundColor:
+                                                              const Color(
+                                                                  0xFF1976D2),
+                                                          child: Text(
+                                                            passenger.user
+                                                                .name[0]
+                                                                .toUpperCase(),
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 16,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 12),
+                                                        Text(
+                                                          passenger.user.name,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold,
+                                                            color: Color(
+                                                                0xFF0D47A1),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    // Infos
+                                                    _passengerInfoRow(
+                                                        Icons.phone,
+                                                        passenger.user.phone),
+                                                    const SizedBox(height: 8),
+                                                    _passengerInfoRow(
+                                                        Icons.email,
+                                                        passenger.user.email),
+                                                    const SizedBox(height: 8),
+                                                    _passengerInfoRow(
+                                                        Icons.event_seat,
+                                                        "${passenger.reservation.seatsReserved} place(s)"),
+                                                  ],
                                                 ),
-                                                Text(
-                                                  "Email: ${passenger.user.email}",
-                                                ),
-                                                Text(
-                                                  "Places réservées: ${passenger.reservation.seatsReserved}",
+                                                // Bouton Chat en haut à gauche
+                                                Positioned(
+                                                  left: 0,
+                                                  top: 0,
+                                                  child: InkWell(
+                                                    onTap: () {
+                                                      final app = context
+                                                          .read<AppState>();
+                                                      if (app.currentUser ==
+                                                          null) {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                                'Erreur: Utilisateur non connecté'),
+                                                          ),
+                                                        );
+                                                        return;
+                                                      }
+                                                      Navigator.pop(
+                                                          context); // Close dialog
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (_) =>
+                                                              ChatDetailsPage(
+                                                            peerId: passenger
+                                                                .user.id,
+                                                            peerName: passenger
+                                                                .user.name,
+                                                            currentUserId: app
+                                                                .currentUser!
+                                                                .id,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                            color: Colors.blue,
+                                                            width: 1),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: Colors
+                                                                .black12,
+                                                            blurRadius: 4,
+                                                            offset: Offset(
+                                                                0, 2),
+                                                          )
+                                                        ],
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons
+                                                            .chat_bubble_outline,
+                                                        size: 18,
+                                                        color:
+                                                            Color(0xFF1976D2),
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -399,6 +515,34 @@ class _UserRidesPageState extends State<UserRidesPage> {
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _passengerInfoRow(IconData icon, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: Colors.grey.shade600),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Colors.black87,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

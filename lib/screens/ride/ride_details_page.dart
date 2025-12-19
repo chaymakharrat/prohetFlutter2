@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:projet_flutter/controller/reservation_controller.dart';
-//import 'package:projet_flutter/controller/ride_controller.dart';
 import 'package:projet_flutter/models/dto/ride_with_driver_dto.dart';
+import '../chat/chat_details_page.dart';
 import '../../models/app_ride_models.dart';
 import 'booking_page.dart';
 import 'package:intl/intl.dart';
@@ -289,66 +289,163 @@ class _RideDetailsPageState extends State<RideDetailsPage> {
                             top: Radius.circular(16),
                           ),
                         ),
-                        builder: (context) => Padding(
-                          padding: const EdgeInsets.all(16),
+                        builder: (context) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 24),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(20)),
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                widget.rideDTO.driver.name,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(
-                                    0xFF0D47A1,
-                                  ), // bleu foncé comme les titres
+                              // 1. Avatar & Name
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 30,
+                                    backgroundColor: const Color(0xFFE3F2FD),
+                                    child: Text(
+                                      widget.rideDTO.driver.name[0]
+                                          .toUpperCase(),
+                                      style: const TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1976D2)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.rideDTO.driver.name,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0D47A1),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.star_rounded,
+                                                color: Colors.amber, size: 20),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${widget.rideDTO.driver.rating.toStringAsFixed(1)} / 5',
+                                              style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+
+                              // 2. Contact Info Group
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF5F9FC),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                      color: const Color(0xFFE1F5FE)),
+                                ),
+                                child: Column(
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.email_outlined,
+                                          color: Color(0xFF1976D2)),
+                                      title: Text(
+                                        widget.rideDTO.driver.email,
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            color: Colors.black87),
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    Divider(
+                                        height: 1,
+                                        color: Colors.grey.withOpacity(0.1)),
+                                    ListTile(
+                                      leading: const Icon(Icons.phone_outlined,
+                                          color: Color(0xFF1976D2)),
+                                      title: Text(
+                                        widget.rideDTO.driver.phone,
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            color: Colors.black87),
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.email,
-                                    color: Color(0xFF1976D2),
-                                  ), // bleu cohérent
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    widget.rideDTO.driver.email,
-                                    style: const TextStyle(
-                                      color: Colors.black87,
+                              const SizedBox(height: 24),
+
+                              // 3. Action Button
+                              InkWell(
+                                onTap: () {
+                                  final app = context.read<AppState>();
+                                  if (app.currentUser == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Veuillez vous connecter pour envoyer un message.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatDetailsPage(
+                                        peerId: widget.rideDTO.driver.id,
+                                        peerName: widget.rideDTO.driver.name,
+                                        currentUserId: app.currentUser!.id,
+                                      ),
                                     ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(50),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1976D2),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF1976D2)
+                                            .withOpacity(0.25),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                  child: const Icon(
+                                    Icons.chat_bubble_outline_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.phone,
-                                    color: Color(0xFF1976D2),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    widget.rideDTO.driver.phone,
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(Icons.star, color: Colors.amber),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${widget.rideDTO.driver.rating.toStringAsFixed(1)} / 5',
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                "Envoyer un message",
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),

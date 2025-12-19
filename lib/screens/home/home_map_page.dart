@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import '../../state/app_state.dart';
 import '../ride/ride_list_page.dart';
 import '../ride/publish_ride_page.dart';
+import '../chat/conversation_list_page.dart';
 
 class HomeMapPage extends StatefulWidget {
   const HomeMapPage({super.key, this.showMap = true});
@@ -368,8 +369,8 @@ class _HomeMapPageState extends State<HomeMapPage> {
         shadowColor: Colors.black.withOpacity(0.2),
         iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
-          icon: const Icon(Icons.notifications),
-          onPressed: () => Navigator.pushNamed(context, '/notifications'),
+          icon: const Icon(Icons.chat_bubble),
+          onPressed: () => Navigator.pushNamed(context, ConversationListPage.routeName),
         ),
         actions: [UserAvatarAction(app)],
       ),

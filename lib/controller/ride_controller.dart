@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:projet_flutter/controller/notification_controller.dart';
+import 'package:projet_flutter/controller/chat_controller.dart';
 import 'package:projet_flutter/controller/user_controller.dart';
 import 'package:projet_flutter/models/dto/reservation_with_user.dart';
 import 'package:projet_flutter/models/dto/ride_with_driver_dto.dart';
@@ -13,8 +13,7 @@ class RideController {
     'users',
   );
   UserController _userProfileController = UserController();
-  final NotificationController _notificationController =
-      NotificationController();
+  final ChatController _chatController = ChatController();
 
   // ➕ Ajouter un ride
   Future<void> addRide(Ride ride) async {
@@ -45,11 +44,9 @@ class RideController {
       // Notifier les passagers
       final reservations = await getReservationsForRide(ride.id);
       for (var res in reservations) {
-        await _notificationController.sendNotification(
+        await _chatController.sendMessage(
           senderId: ride.driverId,
           receiverId: res.userId,
-          rideId: ride.id,
-          title: "Trajet modifié",
           body:
               "Le trajet ${ride.origin.label} → ${ride.destination.label} a été modifié.",
           type: "ride_modification",
@@ -72,11 +69,9 @@ class RideController {
     // Notifier les passagers
     final reservations = await getReservationsForRide(rideId);
     for (var res in reservations) {
-      await _notificationController.sendNotification(
+      await _chatController.sendMessage(
         senderId: ride.driverId,
         receiverId: res.userId,
-        rideId: ride.id,
-        title: "Trajet annulé",
         body:
             "Le trajet ${ride.origin.label} → ${ride.destination.label} a été annulé par le conducteur.",
         type: "ride_cancellation",

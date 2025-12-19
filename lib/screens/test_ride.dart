@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:projet_flutter/controller/notification_controller.dart';
 import 'package:projet_flutter/controller/reservation_controller.dart';
 import 'package:projet_flutter/controller/ride_controller.dart';
-import 'package:projet_flutter/models/dto/notification_with_users.dart';
 import 'package:projet_flutter/models/dto/ride_with_driver_dto.dart';
 import 'package:projet_flutter/state/app_state.dart';
 import '../../models/app_ride_models.dart';

@@ -1,11 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/app_ride_models.dart'; // ton modèle Reservation
-import 'package:projet_flutter/controller/notification_controller.dart';
+import 'package:projet_flutter/controller/chat_controller.dart';
 
 class ReservationController {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final NotificationController _notificationController =
-      NotificationController();
+  final ChatController _chatController = ChatController();
 
   // Ajouter une réservation à un ride
   Future<void> addReservation(String rideId, Reservation reservation) async {
@@ -67,12 +66,10 @@ class ReservationController {
         final origin = rideData['origin']['label'] ?? '???';
         final dest = rideData['destination']['label'] ?? '???';
 
-        // 3. Envoyer la notif au driver
-        await _notificationController.sendNotification(
+        // 3. Envoyer la notif au driver (via message système)
+        await _chatController.sendMessage(
           senderId: userId,
           receiverId: driverId,
-          rideId: rideId,
-          title: "Réservation annulée",
           body:
               "Un passager a annulé sa réservation pour le trajet $origin → $dest.",
           type: "reservation_cancellation",

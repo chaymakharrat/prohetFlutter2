@@ -158,6 +158,13 @@ class _PublishRidePageState extends State<PublishRidePage> {
                                 final n = int.tryParse(v);
                                 if (n == null || n <= 0 || n > 4)
                                   return 'Entre 1 et 4';
+
+                                // Validation: Cannot reduce seats below reserved count
+                                if (widget.rideToEdit != null &&
+                                    widget.rideToEdit!.reserverSeats > 0 &&
+                                    n < widget.rideToEdit!.reserverSeats) {
+                                  return 'Min ${widget.rideToEdit!.reserverSeats.toInt()} places (déjà réservées)';
+                                }
                                 return null;
                               },
                             ),
@@ -276,59 +283,61 @@ class _PublishRidePageState extends State<PublishRidePage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                onPressed: () async {
-                  if (!_formKey.currentState!.validate()) return;
-                  if (app.destination == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Veuillez sélectionner une destination !',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
+                onPressed:
+                    // ? null // Disable button if < 3 hours
+                    () async {
+                      if (!_formKey.currentState!.validate()) return;
+                      if (app.destination == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Veuillez sélectionner une destination !',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
 
-                  final ride = Ride(
-                    id: isEdit
-                        ? widget.rideToEdit!.id
-                        : DateTime.now().millisecondsSinceEpoch.toString(),
-                    driverId: app.currentUser!.id,
-                    origin: widget.rideToEdit?.origin ?? app.origin!,
-                    destination:
-                        widget.rideToEdit?.destination ?? app.destination!,
-                    departureTime: _dateTime,
-                    availableSeats: int.parse(_seatsController.text),
-                    pricePerSeat: double.parse(_priceController.text),
-                    reserverSeats: 0,
-                    distanceKm: app.distanceKm?.roundToDouble() ?? 0,
-                    durationMin: app.durationMin?.roundToDouble() ?? 0.0,
-                  );
+                      final ride = Ride(
+                        id: isEdit
+                            ? widget.rideToEdit!.id
+                            : DateTime.now().millisecondsSinceEpoch.toString(),
+                        driverId: app.currentUser!.id,
+                        origin: widget.rideToEdit?.origin ?? app.origin!,
+                        destination:
+                            widget.rideToEdit?.destination ?? app.destination!,
+                        departureTime: _dateTime,
+                        availableSeats: int.parse(_seatsController.text),
+                        pricePerSeat: double.parse(_priceController.text),
+                        reserverSeats: widget.rideToEdit?.reserverSeats ?? 0,
+                        distanceKm: app.distanceKm?.roundToDouble() ?? 0,
+                        durationMin: app.durationMin?.roundToDouble() ?? 0.0,
+                      );
 
-                  final rideController = RideController();
-                  try {
-                    if (isEdit) {
-                      await rideController.updateRide(ride);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Ride modifié avec succès !'),
-                        ),
-                      );
-                    } else {
-                      await rideController.addRide(ride);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Ride ajouté avec succès !'),
-                        ),
-                      );
-                    }
-                    Navigator.pushNamed(context, '/userRides');
-                  } catch (e) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Erreur : $e')));
-                  }
-                },
+                      final rideController = RideController();
+                      try {
+                        if (isEdit) {
+                          await rideController.updateRide(ride);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Ride modifié avec succès !'),
+                            ),
+                          );
+                        } else {
+                          await rideController.addRide(ride);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Ride ajouté avec succès !'),
+                            ),
+                          );
+                        }
+                        Navigator.pushNamed(context, '/userRides');
+                      } catch (e) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Erreur : $e')));
+                      }
+                    },
               ),
             ),
           ),

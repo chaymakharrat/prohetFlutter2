@@ -6,7 +6,6 @@ import 'models/app_ride_models.dart';
 import 'screens/home/splash_page.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/profile/profile_page.dart';
-import 'screens/chat/chat_page.dart';
 import 'screens/profile/rating_page.dart';
 import 'screens/home/home_map_page.dart';
 import 'screens/ride/publish_ride_page.dart';
@@ -14,7 +13,7 @@ import 'screens/ride/ride_details_page.dart';
 import 'screens/ride/ride_list_page.dart';
 import 'screens/ride/booking_page.dart';
 import 'screens/ride/user_rides_page.dart';
-import 'screens/notification/notifications_page.dart';
+import 'screens/chat/conversation_list_page.dart';
 
 import 'state/app_state.dart';
 
@@ -63,7 +62,6 @@ class RideShareApp extends StatelessWidget {
           '/': (_) => const SplashPage(),
           '/login': (_) => const LoginPage(),
           '/signup': (_) => const SignUpPage(),
-          '/chat': (_) => const ChatPage(),
           '/rating': (_) => const RatingPage(),
           '/home': (_) => const HomeMapPage(),
           ProfilePage.routeName: (_) => const ProfilePage(),
@@ -72,7 +70,7 @@ class RideShareApp extends StatelessWidget {
           BookingPage.routeName: (_) => const BookingPage(),
           UserRidesPage.routeName: (BuildContext context) =>
               const UserRidesPage(),
-          NotificationsPage.routeName: (_) => const NotificationsPage(),
+          ConversationListPage.routeName: (_) => const ConversationListPage(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == RideDetailsPage.routeName) {

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../models/app_ride_models.dart';
 import '../../controller/reservation_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../chat/chat_details_page.dart';
 
 class BookingPage extends StatefulWidget {
   static const String routeName = '/booking';
@@ -228,6 +229,30 @@ class _BookingPageState extends State<BookingPage> {
                                       ],
                                     ),
                                     actions: [
+                                      IconButton(
+                                        onPressed: () {
+                                          final appState =
+                                              context.read<AppState>();
+                                          if (appState.currentUser == null)
+                                            return;
+
+                                          Navigator.pop(context);
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => ChatDetailsPage(
+                                                peerId: ride.driver.id,
+                                                peerName: ride.driver.name,
+                                                currentUserId:
+                                                    appState.currentUser!.id,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.chat_bubble,
+                                            color: Color(0xFF1976D2)),
+                                        tooltip: "Envoyer un message",
+                                      ),
                                       TextButton(
                                         onPressed: () => Navigator.pop(context),
                                         child: const Text("Fermer"),
