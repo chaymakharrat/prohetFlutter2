@@ -190,21 +190,136 @@ class _RideListPageState extends State<RideListPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${rideDTO.ride.origin.label} → ${rideDTO.ride.destination.label}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF0D47A1),
+                                  // ---------------- ORIGIN ----------------
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.circle,
+                                        color: Color(0xFF1976D2),
+                                        size: 10,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          rideDTO.ride.origin.label,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ), // Full text shown
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  // Vertical dashed line (simulated)
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 4.5),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 2,
+                                    ),
+                                    height: 14,
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: Colors.grey,
+                                          width: 1,
+                                          style: BorderStyle.solid,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${dateFormat.format(rideDTO.ride.departureTime)}  •  ${rideDTO.ride.distanceKm.toStringAsFixed(1)} km  •  ${rideDTO.ride.availableSeats - rideDTO.ride.reserverSeats} places',
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 13,
-                                    ),
+                                  // ---------------- DESTINATION ----------------
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.location_on,
+                                        color: Color(
+                                          0xFF00AEEF,
+                                        ), // Lighter blue for destination
+                                        size: 12,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          rideDTO.ride.destination.label,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ), // Full text shown
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  // ---------------- INFO ROW ----------------
+                                  Wrap(
+                                    spacing: 12, // Gap between items
+                                    runSpacing: 4, // Gap between lines
+                                    children: [
+                                      // Date/Time
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_month_outlined,
+                                            size: 14,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            dateFormat.format(
+                                              rideDTO.ride.departureTime,
+                                            ),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade700,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      // Distance (restored)
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.route_outlined,
+                                            size: 14,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${rideDTO.ride.distanceKm.toStringAsFixed(0)} km',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      // Seats
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.person_outline,
+                                            size: 14,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${rideDTO.ride.availableSeats - rideDTO.ride.reserverSeats} pl.',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

@@ -62,7 +62,7 @@ class RideShareApp extends StatelessWidget {
           '/': (_) => const SplashPage(),
           '/login': (_) => const LoginPage(),
           '/signup': (_) => const SignUpPage(),
-          '/rating': (_) => const RatingPage(),
+          '/signup': (_) => const SignUpPage(),
           '/home': (_) => const HomeMapPage(),
           ProfilePage.routeName: (_) => const ProfilePage(),
           RideListPage.routeName: (_) => const RideListPage(),

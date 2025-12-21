@@ -87,11 +87,10 @@ class ReservationController {
     });
   }
 
-
   /// Récupère toutes les réservations actives d'un utilisateur dont le trajet n'est pas encore passé
   Future<List<Reservation>> getActiveReservationsForUser(String userId) async {
     try {
-      final now = DateTime.now();
+      final now = DateTime.now().add(const Duration(hours: 1));
       final today = DateTime(now.year, now.month, now.day);
 
       // Récupère toutes les réservations actives de l'utilisateur

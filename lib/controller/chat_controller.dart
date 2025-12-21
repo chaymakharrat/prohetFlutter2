@@ -127,8 +127,8 @@ class ChatController {
         .collection('conversations')
         .doc(peerId);
 
-    // 1. Reset unreadCount
-    await conversationRef.update({'unreadCount': 0});
+    // 1. Reset unreadCount (set avec merge évite l'erreur not-found si nouvelle conversation)
+    await conversationRef.set({'unreadCount': 0}, SetOptions(merge: true));
 
     // 2. Update isRead status in messages (optional, expensive if many messages)
     // On peut le faire uniquement pour les messages non lus récents

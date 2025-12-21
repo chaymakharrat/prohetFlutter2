@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
 import '../ride/booking_page.dart';
+import 'rating_page.dart';
 
 class ProfilePage extends StatefulWidget {
   static const String routeName = '/profile';
@@ -24,38 +25,150 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
-      body: SafeArea(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildHeader(context, user),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+            // Overlapping Header with Stack
+            SizedBox(
+              height: 280,
+              child: Stack(
                 children: [
-                  _sectionTitle("Informations personnelles"),
-                  _infoTile(
-                    icon: Icons.phone,
+                  // Blue Gradient Background
+                  ClipPath(
+                    clipper: HeaderClipper(),
+                    child: Container(
+                      height: 220,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: SafeArea(
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 10, top: 10),
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back_ios_new,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Avatar & Info
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                offset: Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundColor: const Color(0xFFE3F2FD),
+                            child: Text(
+                              user.name.isNotEmpty
+                                  ? user.name[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1565C0),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          user.name,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Membre depuis 2024",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sectionTitle("Coordonnées"),
+                  const SizedBox(height: 10),
+                  _buildModernTile(
+                    icon: Icons.phone_rounded,
                     title: "Téléphone",
                     value: user.phone,
+                    iconColor: Colors.blue.shade600,
+                    bgColor: Colors.blue.shade50,
                   ),
-                  _infoTile(
-                    icon: Icons.email,
+                  const SizedBox(height: 16),
+                  _buildModernTile(
+                    icon: Icons.email_rounded,
                     title: "Email",
                     value: user.email,
+                    iconColor: Colors.orange.shade600,
+                    bgColor: Colors.orange.shade50,
                   ),
-                  const SizedBox(height: 20),
-                  _sectionTitle("Vos activités"),
-                  _actionTile(
-                    icon: Icons.directions_car,
-                    title: "Trajets proposés",
-                    color: Colors.blue,
+
+                  const SizedBox(height: 30),
+                  _sectionTitle("Activités"),
+                  const SizedBox(height: 10),
+
+                  // Wide Cards for Activities
+                  _buildWideActionCard(
+                    context,
+                    title: "Trajets Proposés",
+                    subtitle: "Gérez vos annonces et passagers",
+                    icon: Icons.directions_car_filled,
+                    color: const Color(0xFF1976D2),
                     onTap: () => Navigator.pushNamed(context, '/userRides'),
                   ),
-                  _actionTile(
+                  const SizedBox(height: 16),
+                  _buildWideActionCard(
+                    context,
+                    title: "Trajets Réservés",
+                    subtitle: "Consultez vos réservations à venir",
                     icon: Icons.event_seat,
-                    title: "Trajets réservés",
-                    color: Colors.green,
+                    color: const Color(0xFF43A047),
                     onTap: () {
                       Navigator.pushNamed(
                         context,
@@ -64,71 +177,55 @@ class _ProfilePageState extends State<ProfilePage> {
                       );
                     },
                   ),
-                  const SizedBox(height: 30),
-                  _logoutButton(context),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  // ----------------------------- HEADER -----------------------------
-  Widget _buildHeader(BuildContext context, user) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1976D2), Color(0xFF00AEEF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(26),
-          bottomRight: Radius.circular(26),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-        child: Row(
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: 42,
-              backgroundColor: Colors.white.withOpacity(0.9),
-              child: Text(
-                user.name[0].toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1976D2),
-                ),
-              ),
-            ),
-            const SizedBox(width: 18),
-            // Nom + rating
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 40),
+
+                  // Rating Banner
+                  _buildRatingBanner(context),
+
+                  const SizedBox(height: 30),
+
+                  // Logout
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: Colors.red.shade100),
+                        ),
+                      ),
+                      onPressed: () {
+                        Provider.of<AppState>(context, listen: false).logout();
+                        Navigator.pushReplacementNamed(context, '/login');
+                      },
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text(
+                        "Se déconnecter",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 30),
                 ],
               ),
-            ),
-            // Close button
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close, color: Colors.white, size: 26),
             ),
           ],
         ),
@@ -136,49 +233,73 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // ----------------------------- SECTION TITLE -----------------------------
   Widget _sectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 6, bottom: 10),
+      padding: const EdgeInsets.only(left: 4),
       child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 17,
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 13,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF1A237E),
+          color: Colors.grey.shade500,
+          letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  // ----------------------------- INFO TILE -----------------------------
-  Widget _infoTile({
+  Widget _buildModernTile({
     required IconData icon,
     required String title,
     required String value,
+    required Color iconColor,
+    required Color bgColor,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Row(
         children: [
-          Icon(icon, size: 28, color: const Color(0xFF1976D2)),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -186,72 +307,168 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // ----------------------------- ACTION TILE -----------------------------
-  Widget _actionTile({
-    required IconData icon,
+  Widget _buildWideActionCard(
+    BuildContext context, {
     required String title,
+    required String subtitle,
+    required IconData icon,
     required Color color,
-    VoidCallback? onTap,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 18),
-        leading: Container(
-          height: 46,
-          width: 46,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.18),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: color, size: 24),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        child: Row(
+          children: [
+            Container(
+              width: 5,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+          ],
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
       ),
     );
   }
 
-  // ----------------------------- LOGOUT BUTTON -----------------------------
-  Widget _logoutButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: const BorderSide(color: Color(0xFF1976D2)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+  Widget _buildRatingBanner(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        final currentUser = Provider.of<AppState>(context, listen: false).currentUser!;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RatingPage(
+              targetUserId: currentUser.id,
+              targetUserName: currentUser.name,
+              targetUserImage: null,
+            ),
           ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8E24AA), Color(0xFFD81B60)], // Purple to Pink
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD81B60).withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        onPressed: () {
-          Provider.of<AppState>(context, listen: false).logout();
-          Navigator.pushReplacementNamed(context, '/login');
-        },
-        child: const Text(
-          "Déconnexion",
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1976D2),
-          ),
+        child: Row(
+          children: [
+            const Icon(Icons.star_rounded, color: Colors.white, size: 36),
+            const SizedBox(width: 15),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Vous aimez l'app ?",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "Donnez-nous votre avis !",
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.arrow_forward,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+
+    path.lineTo(0, size.height - 60);
+
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 60,
+    );
+
+    path.lineTo(size.width, 0);
+    path.close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

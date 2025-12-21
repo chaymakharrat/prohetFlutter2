@@ -17,18 +17,7 @@ class RideController {
 
   // ➕ Ajouter un ride
   Future<void> addRide(Ride ride) async {
-    await _ridesRef.add({
-      'driverId': ride.driverId,
-      'origin': ride.origin.toMap(),
-      'destination': ride.destination.toMap(),
-      'departureTime': Timestamp.fromDate(ride.departureTime),
-      'availableSeats': ride.availableSeats,
-      'pricePerSeat': ride.pricePerSeat,
-      'distanceKm': ride.distanceKm,
-      'durationMin': ride.durationMin,
-      'reserverSeats': ride.reserverSeats,
-      'status': 'active',
-    });
+    await _ridesRef.add(ride.toMap());
   }
 
   /// Mettre à jour un ride existant(st7a9it el notification)
@@ -87,16 +76,13 @@ class RideController {
   // 👤 Rides d’un conducteur les rides active et ne passe pas le temps
   Future<List<RideDTO>> getUserRides(String userId) async {
     try {
-      final now = DateTime.now();
+      final now = DateTime.now().add(const Duration(hours: 1)); // Tunisie
       final today = DateTime(now.year, now.month, now.day);
       // Filtrer uniquement les trajets dont le status est 'active' et dont la date n'est pas passée
       final snapshot = await _ridesRef
           .where('driverId', isEqualTo: userId)
           .where('status', isEqualTo: 'active')
-          .where(
-            'departureTime',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(today),
-          )
+          .where('departureTime', isGreaterThan: Timestamp.fromDate(now))
           .orderBy('departureTime')
           .get();
       final rides = <RideDTO>[];
@@ -132,13 +118,12 @@ class RideController {
           isLessThanOrEqualTo: filter!.maxPrice,
         );
       }
-      //Filtrer uniquement les trajets dont la date n'est pas passée
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
+      final now = DateTime.now().add(const Duration(hours: 1)); // Tunisie
       query = query.where(
         'departureTime',
-        isGreaterThanOrEqualTo: Timestamp.fromDate(today),
+        isGreaterThanOrEqualTo: Timestamp.fromDate(now),
       );
+
       // Trier par date
       query = query.orderBy('departureTime');
 
@@ -179,7 +164,6 @@ class RideController {
         driverDoc.id,
         driverDoc.data() as Map<String, dynamic>,
       );
-
       return RideDTO(ride: ride, driver: driver);
     } catch (e) {
       print("Erreur getRideById: $e");
@@ -187,7 +171,6 @@ class RideController {
     }
   }
 
-  /// Récupère toutes les réservations pour un trajet donné
   /// Récupère toutes les réservations pour un trajet donné
   Future<List<Reservation>> getReservationsForRide(String rideId) async {
     try {
@@ -229,4 +212,20 @@ class RideController {
       }),
     );
   }
+
+  String formatDurationFromMinutes(double minutes) {
+    final totalMinutes = minutes.round();
+    final hours = totalMinutes ~/ 60;
+    final mins = totalMinutes % 60;
+
+    if (hours > 0 && mins > 0) {
+      return '${hours}h ${mins}min';
+    } else if (hours > 0) {
+      return '${hours}h';
+    } else {
+      return '${mins}min';
+    }
+  }
+
+
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/app_ride_models.dart';
-//import '../controller/ride_controller.dart';
 import '../controller/ride_controller.dart';
 
 /// AppState est un store d’état global pour l’application.
@@ -22,16 +21,21 @@ class AppState extends ChangeNotifier {
   LocationPoint? destination; // Point d’arrivée sélectionné
   double? distanceKm;
   double? durationMin;
+  // String get formattedDuration {
+  //   if (durationMin == null) return '';
+  //   final totalMinutes = durationMin!.round();
+  //   final hours = totalMinutes ~/ 60;
+  //   final minutes = totalMinutes % 60;
+  //   if (hours > 0) {
+  //     return '${hours}h ${minutes}min';
+  //   } else {
+  //     return '${minutes}min';
+  //   }
+  // }
+
   String get formattedDuration {
     if (durationMin == null) return '';
-    final totalMinutes = durationMin!.round();
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-    if (hours > 0) {
-      return '${hours}h ${minutes}min';
-    } else {
-      return '${minutes}min';
-    }
+    return rideController.formatDurationFromMinutes(durationMin!);
   }
 
   String? currentUserId; // UID de l’utilisateur (facultatif ici)

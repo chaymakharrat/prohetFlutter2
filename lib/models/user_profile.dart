@@ -6,6 +6,9 @@ class UserProfile {
   final double rating; // 0..5
   final String phone;
   String email;
+  final String feedback;
+
+  final int ratingCount;
 
   UserProfile({
     required this.id,
@@ -13,6 +16,8 @@ class UserProfile {
     this.email = "chayma@gmail.com",
     required this.phone,
     this.rating = 4.5,
+    this.ratingCount = 0,
+    this.feedback = "",
   });
   // 1️⃣ Convertir un user en Map<String, dynamic>
   // Méthode d’instance
@@ -22,6 +27,9 @@ class UserProfile {
       "email": email,
       "phone": phone,
       "rating": rating,
+      "ratingCount": ratingCount,
+      "feedback": feedback,
+      "updatedAt": FieldValue.serverTimestamp(),
       "createdAt": FieldValue.serverTimestamp(),
     };
   }
@@ -33,6 +41,8 @@ class UserProfile {
       email: data["email"] ?? "",
       phone: data["phone"] ?? "",
       rating: (data["rating"] ?? 4.5).toDouble(),
+      ratingCount: (data["ratingCount"] ?? 0) as int,
+      feedback: data["feedback"] ?? "",
     );
   }
 }

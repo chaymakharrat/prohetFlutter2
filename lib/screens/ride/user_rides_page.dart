@@ -3,6 +3,7 @@ import 'package:projet_flutter/controller/ride_controller.dart';
 import 'package:projet_flutter/models/dto/ride_with_reservation.dart';
 import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
+import 'package:projet_flutter/models/ride.dart';
 import 'publish_ride_page.dart';
 import '../chat/chat_details_page.dart';
 
@@ -52,18 +53,27 @@ class _UserRidesPageState extends State<UserRidesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F6FD),
       appBar: AppBar(
-        title: const Text('Mes trajets publiés'),
+        title: const Text(
+          "Mes trajets publiés",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
         centerTitle: true,
         elevation: 0,
+        backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+              colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
           ),
         ),
+        foregroundColor: Colors.white,
       ),
       body: FutureBuilder<List<RideWithReservations>>(
         future: ridesWithReservationsFuture,
@@ -111,22 +121,56 @@ class _UserRidesPageState extends State<UserRidesPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // TITRE DU TRAJET
+                      // --- TIMELINE TRAJET ---
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.location_on,
-                            color: Color(0xFF1976D2),
-                            size: 26,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${rideDTO.ride.origin.label} → ${rideDTO.ride.destination.label}',
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0D47A1),
+                          // Colonne Icônes (Axe)
+                          Column(
+                            children: [
+                              const Icon(
+                                Icons.circle,
+                                color: Color(0xFF1976D2),
+                                size: 14,
                               ),
+                              Container(
+                                width: 2,
+                                height: 30,
+                                color: Colors.grey.shade300,
+                              ),
+                              const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 12),
+                          // Colonne Textes
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  rideDTO.ride.origin.label,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 18),
+                                Text(
+                                  rideDTO.ride.destination.label,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -144,7 +188,8 @@ class _UserRidesPageState extends State<UserRidesPage> {
                           Text(
                             '${rideDTO.ride.departureTime.day.toString().padLeft(2, '0')}/'
                             '${rideDTO.ride.departureTime.month.toString().padLeft(2, '0')}/'
-                            '${rideDTO.ride.departureTime.year}  '
+                            '${rideDTO.ride.departureTime.year} '
+                            '• ${rideDTO.ride.period.displayName} • '
                             '${rideDTO.ride.departureTime.hour.toString().padLeft(2, '0')}:'
                             '${rideDTO.ride.departureTime.minute.toString().padLeft(2, '0')}',
                             style: const TextStyle(
@@ -217,6 +262,14 @@ class _UserRidesPageState extends State<UserRidesPage> {
                               IconButton(
                                 tooltip: 'Modifier',
                                 onPressed: () {
+                                  // Asign exact reserved seats count for validation logic
+                                  final totalReserved = reservations.fold<int>(
+                                    0,
+                                    (s, r) => s + r.reservation.seatsReserved,
+                                  );
+                                  rideDTO.ride.reserverSeats = totalReserved
+                                      .toDouble();
+
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -243,23 +296,102 @@ class _UserRidesPageState extends State<UserRidesPage> {
                                   final confirm = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: const Text('Annuler le trajet'),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      title: Column(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: const Color.fromARGB(
+                                                255,
+                                                255,
+                                                239,
+                                                242,
+                                              ),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.warning_rounded,
+                                              color: Colors.red.shade400,
+                                              size: 32,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          const Text(
+                                            'Annuler le trajet',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                       content: const Text(
-                                        'Voulez-vous vraiment annuler ce trajet ? Les passagers seront notifiés.',
+                                        'Voulez-vous vraiment annuler ce trajet ?\n\nCette action est irréversible et les passagers seront notifiés immédiatement.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      actionsAlignment:
+                                          MainAxisAlignment.center,
+                                      actionsPadding: const EdgeInsets.only(
+                                        bottom: 24,
+                                        left: 24,
+                                        right: 24,
+                                        top: 10,
                                       ),
                                       actions: [
-                                        TextButton(
+                                        OutlinedButton(
                                           onPressed: () =>
                                               Navigator.pop(context, false),
-                                          child: const Text('Non'),
+                                          style: OutlinedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 12,
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.grey.shade300,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Retour',
+                                            style: TextStyle(
+                                              color: Colors.grey.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                         ),
+                                        const SizedBox(width: 12),
                                         ElevatedButton(
                                           onPressed: () =>
                                               Navigator.pop(context, true),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.red,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 12,
+                                            ),
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
                                           ),
-                                          child: const Text('Oui, annuler'),
+                                          child: const Text(
+                                            'Confirmer',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -336,7 +468,8 @@ class _UserRidesPageState extends State<UserRidesPage> {
                                               borderRadius:
                                                   BorderRadius.circular(16),
                                               border: Border.all(
-                                                  color: Colors.grey.shade200),
+                                                color: Colors.grey.shade200,
+                                              ),
                                             ),
                                             child: Stack(
                                               children: [
@@ -353,51 +486,58 @@ class _UserRidesPageState extends State<UserRidesPage> {
                                                           radius: 20,
                                                           backgroundColor:
                                                               const Color(
-                                                                  0xFF1976D2),
+                                                                0xFF1976D2,
+                                                              ),
                                                           child: Text(
-                                                            passenger.user
+                                                            passenger
+                                                                .user
                                                                 .name[0]
                                                                 .toUpperCase(),
                                                             style:
                                                                 const TextStyle(
-                                                              fontSize: 16,
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
+                                                                  fontSize: 16,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
                                                           ),
                                                         ),
                                                         const SizedBox(
-                                                            width: 12),
+                                                          width: 12,
+                                                        ),
                                                         Text(
                                                           passenger.user.name,
                                                           style:
                                                               const TextStyle(
-                                                            fontSize: 18,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold,
-                                                            color: Color(
-                                                                0xFF0D47A1),
-                                                          ),
+                                                                fontSize: 18,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Color(
+                                                                  0xFF0D47A1,
+                                                                ),
+                                                              ),
                                                         ),
                                                       ],
                                                     ),
                                                     const SizedBox(height: 16),
                                                     // Infos
                                                     _passengerInfoRow(
-                                                        Icons.phone,
-                                                        passenger.user.phone),
+                                                      Icons.phone,
+                                                      passenger.user.phone,
+                                                    ),
                                                     const SizedBox(height: 8),
                                                     _passengerInfoRow(
-                                                        Icons.email,
-                                                        passenger.user.email),
+                                                      Icons.email,
+                                                      passenger.user.email,
+                                                    ),
                                                     const SizedBox(height: 8),
                                                     _passengerInfoRow(
-                                                        Icons.event_seat,
-                                                        "${passenger.reservation.seatsReserved} place(s)"),
+                                                      Icons.event_seat,
+                                                      "${passenger.reservation.seatsReserved} place(s)",
+                                                    ),
                                                   ],
                                                 ),
                                                 // Bouton Chat en haut à gauche
@@ -411,62 +551,74 @@ class _UserRidesPageState extends State<UserRidesPage> {
                                                       if (app.currentUser ==
                                                           null) {
                                                         ScaffoldMessenger.of(
-                                                                context)
-                                                            .showSnackBar(
+                                                          context,
+                                                        ).showSnackBar(
                                                           const SnackBar(
                                                             content: Text(
-                                                                'Erreur: Utilisateur non connecté'),
+                                                              'Erreur: Utilisateur non connecté',
+                                                            ),
                                                           ),
                                                         );
                                                         return;
                                                       }
                                                       Navigator.pop(
-                                                          context); // Close dialog
+                                                        context,
+                                                      ); // Close dialog
                                                       Navigator.push(
                                                         context,
                                                         MaterialPageRoute(
                                                           builder: (_) =>
                                                               ChatDetailsPage(
-                                                            peerId: passenger
-                                                                .user.id,
-                                                            peerName: passenger
-                                                                .user.name,
-                                                            currentUserId: app
-                                                                .currentUser!
-                                                                .id,
-                                                          ),
+                                                                peerId:
+                                                                    passenger
+                                                                        .user
+                                                                        .id,
+                                                                peerName:
+                                                                    passenger
+                                                                        .user
+                                                                        .name,
+                                                                currentUserId: app
+                                                                    .currentUser!
+                                                                    .id,
+                                                              ),
                                                         ),
                                                       );
                                                     },
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                            20),
+                                                          20,
+                                                        ),
                                                     child: Container(
                                                       padding:
                                                           const EdgeInsets.all(
-                                                              8),
+                                                            8,
+                                                          ),
                                                       decoration: BoxDecoration(
                                                         color: Colors.white,
                                                         shape: BoxShape.circle,
                                                         border: Border.all(
-                                                            color: Colors.blue,
-                                                            width: 1),
+                                                          color: Colors.blue,
+                                                          width: 1,
+                                                        ),
                                                         boxShadow: [
                                                           BoxShadow(
-                                                            color: Colors
-                                                                .black12,
+                                                            color:
+                                                                Colors.black12,
                                                             blurRadius: 4,
                                                             offset: Offset(
-                                                                0, 2),
-                                                          )
+                                                              0,
+                                                              2,
+                                                            ),
+                                                          ),
                                                         ],
                                                       ),
                                                       child: const Icon(
                                                         Icons
                                                             .chat_bubble_outline,
                                                         size: 18,
-                                                        color:
-                                                            Color(0xFF1976D2),
+                                                        color: Color(
+                                                          0xFF1976D2,
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
